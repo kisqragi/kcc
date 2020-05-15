@@ -1,35 +1,122 @@
+#include <ctype.h>
+#include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-int main(int argc, char **argv) {
-	if (argc != 2) {
-		fprintf(stderr, "%s: invalid number of arguments\n", argv[0]);
-		return 1;
+typedef enum {
+	TK_RESERVED,	// キーワード(予約語)と区切り記号
+	TK_NUM,			// 数値
+	TK_EOF			// End Of File
+} TokenKind;
+
+typedef struct Token Token;
+struct Token {
+	TokenKind kind;	// トークンの種類
+	Token *next;	// 次のトークン
+	long val;		// TK_NUMの場合に値を格納するのに使う
+	char *loc;		// トークンの位置
+	int len;		// トークンの長さ
+};
+
+// エラーを表示して終了する
+static void error(char *fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	fprintf(stderr, "\n");
+	exit(1);
+}
+
+// 現在のトークンが's'であることを確認する
+static bool equal(Token *tok, char *s) {
+	return strlen(s) == tok->len &&
+			!strncmp(tok->loc, s, tok->len);
+}
+
+// トークンが's'に一致する場合、次のトークンを返す
+static Token *skip(Token *tok, char *s) {
+	if (!equal(tok, s))
+		error("expected '%s'", s);
+	return tok->next;
+}
+
+// トークンが数値の場合、値を返す
+static long get_number(Token *tok) {
+	if (tok->kind != TK_NUM)
+		error("expected a number");
+	return tok->val;
+}
+
+// 新しいトークンを作成し、curの次のトークンとして追加する
+static Token *new_token(TokenKind kind, Token *cur, char *loc, int len) {
+	Token *tok = calloc(1, sizeof(Token));
+	tok->kind = kind;
+	tok->loc = loc;
+	tok->len = len;
+	cur->next = tok;
+	return tok;
+}
+
+static Token *tokenize(char *p) {
+	Token head = {};
+	Token *cur = &head;
+
+	while (*p) {
+		// 空白文字をスキップ
+		if (isspace(*p)) {
+			p++;
+			continue;
+		}
+
+		// 数値
+		if (isdigit(*p)) {
+			cur = new_token(TK_NUM, cur, p, 0);
+			char *q = p;
+			cur->val = strtoul(p, &p, 10);
+			cur->len = p - q;
+			continue;
+		}
+
+		// 区切り文字
+		if (ispunct(*p)) {
+			cur = new_token(TK_RESERVED, cur, p++, 1);
+			continue;
+		}
+
+		error("invalid token");
 	}
 
-	char *p = argv[1];
+	new_token(TK_EOF, cur, p, 0);
+	return head.next;
+}
+
+int main(int argc, char **argv) {
+	if (argc != 2)
+		error("%s: invalid number of arguments\n", argv[0]);
+
+	Token *tok = tokenize(argv[1]);
 
 	printf(".intel_syntax noprefix\n");
 	printf(".globl main\n");
 	printf("main:\n");
-	printf("	mov rax, %ld\n", strtol(p, &p, 10));
 
-	while (*p) {
-		if (*p == '+') {
-			p++;
-			printf("	add rax, %ld\n", strtol(p, &p, 10));
+	// 最初のトークンは数値でなければいけない
+	printf("	mov rax, %ld\n", get_number(tok));
+	tok = tok->next;
+
+	while (tok->kind != TK_EOF) {
+		if (equal(tok, "+")) {
+			printf("	add rax, %ld\n", get_number(tok->next));
+			tok = tok->next->next;
 			continue;
 		}
 
-		if (*p == '-') {
-			p++;
-			printf("	sub rax, %ld\n", strtol(p, &p, 10));
-			continue;
-		}
-
-		fprintf(stderr, "unexpected character: '%c'\n", *p);
-		return 1;
-
+		tok = skip(tok, "-");
+		printf("	sub rax, %ld\n", get_number(tok));
+		tok = tok->next;
+		continue;
 	}
 
 	printf("	ret\n");
