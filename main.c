@@ -20,6 +20,9 @@ struct Token {
 	int len;		// トークンの長さ
 };
 
+// 入力文字列
+static char *current_input;
+
 // エラーを表示して終了する
 static void error(char *fmt, ...) {
 	va_list ap;
@@ -27,6 +30,29 @@ static void error(char *fmt, ...) {
 	vfprintf(stderr, fmt, ap);
 	fprintf(stderr, "\n");
 	exit(1);
+}
+
+// エラーメッセージを出力して終了する
+static void verror_at(char *loc, char *fmt, va_list ap) {
+	int pos = loc - current_input;
+	fprintf(stderr, "%s\n", current_input);
+	fprintf(stderr, "%*s", pos, "");
+	fprintf(stderr, "^ ");
+	vfprintf(stderr, fmt, ap);
+	fprintf(stderr, "\n");
+	exit(1);
+}
+
+static void error_at(char *loc, char *fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+	verror_at(loc, fmt, ap);
+}
+
+static void error_tok(Token *tok, char *fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+	verror_at(tok->loc, fmt, ap);
 }
 
 // 現在のトークンが's'であることを確認する
@@ -38,14 +64,14 @@ static bool equal(Token *tok, char *s) {
 // トークンが's'に一致する場合、次のトークンを返す
 static Token *skip(Token *tok, char *s) {
 	if (!equal(tok, s))
-		error("expected '%s'", s);
+		error_tok(tok, "expected '%s'", s);
 	return tok->next;
 }
 
 // トークンが数値の場合、値を返す
 static long get_number(Token *tok) {
 	if (tok->kind != TK_NUM)
-		error("expected a number");
+		error_tok(tok, "expected a number");
 	return tok->val;
 }
 
@@ -59,8 +85,9 @@ static Token *new_token(TokenKind kind, Token *cur, char *loc, int len) {
 	return tok;
 }
 
-static Token *tokenize(char *p) {
-	Token head = {};
+static Token *tokenize(void) {
+	char *p = current_input;
+	Token head;
 	Token *cur = &head;
 
 	while (*p) {
@@ -85,7 +112,7 @@ static Token *tokenize(char *p) {
 			continue;
 		}
 
-		error("invalid token");
+		error_at(p, "invalid token");
 	}
 
 	new_token(TK_EOF, cur, p, 0);
@@ -96,7 +123,8 @@ int main(int argc, char **argv) {
 	if (argc != 2)
 		error("%s: invalid number of arguments\n", argv[0]);
 
-	Token *tok = tokenize(argv[1]);
+	current_input = argv[1];
+	Token *tok = tokenize();
 
 	printf(".intel_syntax noprefix\n");
 	printf(".globl main\n");
