@@ -167,13 +167,16 @@ static Node *new_num(long val) {
 
 static Node *expr(Token **rest, Token *tok);
 static Node *mul(Token **rest, Token *tok);
+static Node *unary(Token **rest, Token *tok);
 static Node *primary(Token **rest, Token *tok);
 
 //==================================================
 // [生成規則]
 //
 // expr    = mul ("+" mul | "-" mul)*
-// mul     = primary ("*" primary | "/" primary)*
+// mul     = primary ("*" unary | "/" unary)*
+// unary   = ("+" | "-")? unary
+//         | primary
 // primary = "(" expr ")" | num
 //
 //==================================================
@@ -202,18 +205,18 @@ static Node *expr(Token **rest, Token *tok) {
 
 // mul = primary ("*" primary | "/" primary)*
 static Node *mul(Token **rest, Token *tok) {
-    Node *node = primary(&tok, tok);
+    Node *node = unary(&tok, tok);
 
     for (;;) {
 
         if (equal(tok, "*")) {
-            Node *rhs = primary(&tok, tok->next);
+            Node *rhs = unary(&tok, tok->next);
             node = new_binary(ND_MUL, node, rhs);
             continue;
         }
 
         if (equal(tok, "/")) {
-            Node *rhs = primary(&tok, tok->next);
+            Node *rhs = unary(&tok, tok->next);
             node = new_binary(ND_DIV, node, rhs);
             continue;
         }
@@ -221,6 +224,23 @@ static Node *mul(Token **rest, Token *tok) {
         *rest = tok;
         return node;
     }
+}
+
+// unary   = ("+" | "-")? unary
+static Node *unary(Token **rest, Token *tok) {
+    if (equal(tok, "+"))
+        return unary(rest, tok->next);
+
+    if (equal(tok, "-")) {
+        Node *rhs = unary(rest, tok->next);
+        /*
+        Node *rhs = unary(&tok, tok->next);
+        *rest = tok;
+        */
+        return  new_binary(ND_SUB, new_num(0), rhs);
+    }
+
+    return primary(rest, tok);
 }
 
 // primary = "(" expr ")" | num
@@ -251,7 +271,7 @@ static int top;
 
 static void gen_expr(Node *node) {
     if (node->kind == ND_NUM) {
-        printf("mov %s, %lu\n", reg(top++), node->val);
+        printf("    mov %s, %lu\n", reg(top++), node->val);
         return;
     }
 
@@ -310,7 +330,7 @@ int main(int argc, char **argv) {
     gen_expr(node);
 
     // 関数の返り値を設定
-    printf(" mov rax, %s\n", reg(top - 1));
+    printf("    mov rax, %s\n", reg(top - 1));
 
     // 退避させたレジスタの値を元に戻す
     printf("    pop r12\n");
