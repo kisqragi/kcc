@@ -66,9 +66,14 @@ static void gen_expr(Node *node) {
 
 static void gen_stmt(Node *node) {
     switch (node->kind) {
-        case ND_EXPR_STMT:
+        case ND_RETURN:
             gen_expr(node->lhs);
             printf("    mov rax, %s\n", reg(--top));
+            printf("    jmp .L.return\n");
+            return;
+        case ND_EXPR_STMT:
+            gen_expr(node->lhs);
+            top--;
             return;
         default:
             error("invalid statement");
@@ -95,6 +100,7 @@ void codegen(Node *node) {
     }
 
     // 退避させたレジスタの値を元に戻す
+    printf(".L.return:\n");
     printf("    pop r12\n");
     printf("    pop r13\n");
     printf("    pop r14\n");

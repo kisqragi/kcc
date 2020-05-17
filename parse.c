@@ -45,7 +45,7 @@ static long get_number(Token *tok) {
 // [生成規則]
 //
 // program    = stmt*
-// stmt       = expr ";"
+// stmt       = "return"? expr ";"
 // expr       = equality
 // equality   = relational ("==" relational | "!=" relational)*
 // relational = add ("<" add | "<=" | ">" add | ">=" add)*
@@ -56,9 +56,15 @@ static long get_number(Token *tok) {
 //
 //==================================================
 
-// stmt = expr ";"
+// stmt = "return"? expr ";"
 static Node *stmt(Token **rest, Token *tok) {
-    Node *node = new_unary(ND_EXPR_STMT, expr(&tok, tok));
+    Node *node;
+
+    if (equal(tok, "return"))
+        node = new_unary(ND_RETURN, expr(&tok, tok->next));
+    else
+        node = new_unary(ND_EXPR_STMT, expr(&tok, tok));
+
     *rest = skip(tok, ";");
     return node;
 }

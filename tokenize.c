@@ -85,6 +85,12 @@ Token *tokenize(char *p) {
             continue;
         }
 
+        if (startswith(p, "return") && !isalnum(p[6])) {
+            cur = new_token(TK_RESERVED, cur, p, 6);
+            p += 6;
+            continue;
+        }
+
         // ２文字の区切り文字
         if (startswith(p, "==") || startswith(p, "!=") ||
             startswith(p, ">=") || startswith(p, "<=")) {
