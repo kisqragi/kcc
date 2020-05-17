@@ -64,6 +64,17 @@ static void gen_expr(Node *node) {
     }
 }
 
+static void gen_stmt(Node *node) {
+    switch (node->kind) {
+        case ND_EXPR_STMT:
+            gen_expr(node->lhs);
+            printf("    mov rax, %s\n", reg(--top));
+            return;
+        default:
+            error("invalid statement");
+    }
+}
+
 void codegen(Node *node) {
     
     printf(".intel_syntax noprefix\n");
@@ -78,10 +89,10 @@ void codegen(Node *node) {
     printf("    push r15\n");
 
     // アセンブリのコードを生成する
-    gen_expr(node);
-
-    // 関数の返り値を設定
-    printf("    mov rax, %s\n", reg(top - 1));
+    for (Node *n = node; n; n = n->next) {
+        gen_stmt(n);
+        assert(top == 0);
+    }
 
     // 退避させたレジスタの値を元に戻す
     printf("    pop r12\n");

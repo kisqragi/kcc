@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -37,21 +38,23 @@ Token *tokenize(char *p);
 //
 
 typedef enum {
-    ND_ADD, // +
-    ND_SUB, // -
-    ND_MUL, // *
-    ND_DIV, // /
-    ND_EQ,  // ==
-    ND_NE,  // !=
-    ND_LT,  // <=
-    ND_LE,  // >=
-    ND_NUM, // Integer
+    ND_ADD,         // +
+    ND_SUB,         // -
+    ND_MUL,         // *
+    ND_DIV,         // /
+    ND_EQ,          // ==
+    ND_NE,          // !=
+    ND_LT,          // <=
+    ND_LE,          // >=
+    ND_EXPR_STMT,   // Expression statement
+    ND_NUM,         // Integer
 } NodeKind;
 
 // ASTノード型
 typedef struct Node Node;
 struct Node {
     NodeKind kind;  // ノード型
+    Node *next;     // 次ノード
     Node *lhs;      // 左辺
     Node *rhs;      // 右辺
     long val;       // ND_NUMの場合使う
