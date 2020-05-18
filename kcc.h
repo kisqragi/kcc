@@ -13,8 +13,9 @@
 
 typedef enum {
     TK_RESERVED,    // キーワード(予約語)と区切り記号
+    TK_IDENT,       // 識別子
     TK_NUM,         // 数値
-    TK_EOF          // End Of File
+    TK_EOF,         // End Of File
 } TokenKind;
 
 typedef struct Token Token;
@@ -46,8 +47,10 @@ typedef enum {
     ND_NE,          // !=
     ND_LT,          // <=
     ND_LE,          // >=
+    ND_ASSIGN,      // =
     ND_RETURN,      // "return"
     ND_EXPR_STMT,   // Expression statement
+    ND_VAR,         // Variable
     ND_NUM,         // Integer
 } NodeKind;
 
@@ -58,7 +61,8 @@ struct Node {
     Node *next;     // 次ノード
     Node *lhs;      // 左辺
     Node *rhs;      // 右辺
-    long val;       // ND_NUMの場合使う
+    char name;      // ND_VARの場合、識別子を格納するのに使う
+    long val;       // ND_NUMの場合、値を格納するのに使う
 };
 
 Node *parse(Token *tok);

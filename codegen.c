@@ -9,11 +9,42 @@ static char *reg(int idx) {
     return r[idx];
 }
 
-static void gen_expr(Node *node) {
-    if (node->kind == ND_NUM) {
-        printf("    mov %s, %lu\n", reg(top++), node->val);
+static void gen_addr(Node *node) {
+    if (node->kind == ND_VAR) {
+        int offset = (node->name - 'a' + 1) * 8;
+        offset += 32;   // callee-saved registersのための値
+        printf("    lea %s, [rbp-%d]\n", reg(top++), offset);
         return;
     }
+
+    error("not an lvalue");
+}
+
+static void load(void) {
+    printf("    mov %s, [%s]\n", reg(top-1), reg(top-1));
+}
+
+static void store(void) {
+    printf("    mov [%s], %s\n", reg(top-1), reg(top-2));
+    top--;
+}
+
+static void gen_expr(Node *node) {
+    switch (node->kind) {
+        case ND_NUM:
+            printf("    mov %s, %lu\n", reg(top++), node->val);
+            return;
+        case ND_VAR:
+            gen_addr(node);
+            load();
+            return;
+        case ND_ASSIGN:
+            gen_expr(node->rhs);
+            gen_addr(node->lhs);
+            store();
+            return;
+    }
+
 
     gen_expr(node->lhs);
     gen_expr(node->rhs);
@@ -86,12 +117,16 @@ void codegen(Node *node) {
     printf(".globl main\n");
     printf("main:\n");
 
+    // プロローグ
     // callee-saved
     // 呼び出し先がレジスタを保存する　
-    printf("    push r12\n");
-    printf("    push r13\n");
-    printf("    push r14\n");
-    printf("    push r15\n");
+    printf("    push rbp\n");
+    printf("    mov rbp, rsp\n");
+    printf("    sub rsp, 240\n");   // ('r12' ~ 'r15') + ('a' ~ 'z')
+    printf("    mov [rbp-8], r12\n");
+    printf("    mov [rbp-16], r13\n");
+    printf("    mov [rbp-24], r14\n");
+    printf("    mov [rbp-32], r15\n");
 
     // アセンブリのコードを生成する
     for (Node *n = node; n; n = n->next) {
@@ -101,10 +136,12 @@ void codegen(Node *node) {
 
     // 退避させたレジスタの値を元に戻す
     printf(".L.return:\n");
-    printf("    pop r12\n");
-    printf("    pop r13\n");
-    printf("    pop r14\n");
-    printf("    pop r15\n");
+    printf("    mov r12, [rbp-8]\n");
+    printf("    mov r13, [rbp-16]\n");
+    printf("    mov r14, [rbp-24]\n");
+    printf("    mov r15, [rbp-32]\n");
+    printf("    mov rsp, rbp\n");
+    printf("    pop rbp\n");
     printf("    ret\n");
 
 }
