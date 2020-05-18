@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
@@ -18,6 +19,7 @@ typedef enum {
     TK_EOF,         // End Of File
 } TokenKind;
 
+// Token
 typedef struct Token Token;
 struct Token {
     TokenKind kind; // トークンの種類
@@ -37,6 +39,14 @@ Token *tokenize(char *p);
 //
 // parser.c
 //
+
+// ローカル変数
+typedef struct Var Var;
+struct Var {
+    Var *next;
+    char *name; // 変数名
+    int offset; // rbpからの距離
+};
 
 typedef enum {
     ND_ADD,         // +
@@ -61,14 +71,21 @@ struct Node {
     Node *next;     // 次ノード
     Node *lhs;      // 左辺
     Node *rhs;      // 右辺
-    char name;      // ND_VARの場合、識別子を格納するのに使う
+    Var *var;       // ND_VARの場合、変数情報を格納するのに使う
     long val;       // ND_NUMの場合、値を格納するのに使う
 };
 
-Node *parse(Token *tok);
+typedef struct Function Function;
+struct Function {
+    Node *node;
+    Var *locals;
+    int stack_size;
+};
+
+Function *parse(Token *tok);
 
 //
 // codegen.c
 //
 
-void codegen(Node *node);
+void codegen(Function *prog);
