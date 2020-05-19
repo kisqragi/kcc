@@ -1,6 +1,7 @@
 #include "kcc.h"
 
 static int top;
+static int labelseq = 1;
 
 static char *reg(int idx) {
     static char *r[] = {"r10", "r11", "r12", "r13", "r14", "r15"};
@@ -95,6 +96,25 @@ static void gen_expr(Node *node) {
 
 static void gen_stmt(Node *node) {
     switch (node->kind) {
+        case ND_IF: {
+            int seq =  labelseq++;
+            if (node->els) {
+                gen_expr(node->cond);
+                printf("    cmp %s, 0\n", reg(--top));
+                printf("    je .L.else.%d\n", seq);
+                gen_stmt(node->then);
+                printf(".L.else.%d:\n", seq);
+                gen_stmt(node->els);
+                printf("L.end.%d:\n", seq);
+            } else {
+                gen_expr(node->cond);
+                printf("    cmp %s, 0\n", reg(--top));
+                printf("    je .L.end.%d\n", seq);
+                gen_stmt(node->then);
+                printf(".L.end.%d:\n", seq);
+            }
+            return;
+        }
         case ND_RETURN:
             gen_expr(node->lhs);
             printf("    mov rax, %s\n", reg(--top));
