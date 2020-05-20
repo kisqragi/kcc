@@ -60,7 +60,8 @@ typedef enum {
     ND_ASSIGN,      // =
     ND_RETURN,      // "return"
     ND_IF,          // "if"
-    ND_FOR,       // "for"
+    ND_FOR,         // "for"
+    ND_BLOCK,       // { ... }
     ND_EXPR_STMT,   // Expression statement
     ND_VAR,         // Variable
     ND_NUM,         // Integer
@@ -80,6 +81,9 @@ struct Node {
     Node *els;
     Node *init;
     Node *inc;
+
+    // Block
+    Node *body;
 
     Var *var;       // ND_VARの場合、変数情報を格納するのに使う
     long val;       // ND_NUMの場合、値を格納するのに使う
