@@ -76,6 +76,7 @@ static long get_number(Token *tok) {
 // stmt       = "return"? expr ";"
 //            | "if" "(" expr ")" stmt ("else" stmt)?
 //            | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+//            | "while" "(" expr ")" stmt
 // expr       = assign 
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -90,6 +91,7 @@ static long get_number(Token *tok) {
 // stmt = "return"? expr ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+//      | "while" "(" expr ")" stmt
 static Node *stmt(Token **rest, Token *tok) {
     Node *node;
 
@@ -128,6 +130,17 @@ static Node *stmt(Token **rest, Token *tok) {
         if (!equal(tok, ")"))
             node->inc = new_unary(ND_EXPR_STMT, expr(&tok, tok));
 
+        tok = skip(tok, ")");
+
+        node->then = stmt(rest, tok);
+        return node;
+    }
+
+    if (equal(tok, "while")) {
+        node = new_node(ND_FOR);
+        tok = skip(tok->next, "(");
+
+        node->cond = expr(&tok, tok);
         tok = skip(tok, ")");
 
         node->then = stmt(rest, tok);
