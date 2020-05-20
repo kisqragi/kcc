@@ -115,6 +115,23 @@ static void gen_stmt(Node *node) {
             }
             return;
         }
+        case ND_FOR: {
+            int seq = labelseq++;
+            if (node->init)
+                gen_stmt(node->init);
+            printf(".L.begin.%d:\n", seq);
+            if (node->cond) {
+                gen_expr(node->cond);
+                printf("    cmp %s, 0\n", reg(--top));
+                printf("    je .L.end.%d\n", seq);
+            }
+            gen_stmt(node->then);
+            if (node->inc)
+                gen_stmt(node->inc);
+            printf("    jmp .L.begin.%d\n", seq);
+            printf(".L.end.%d:\n", seq);
+            return;
+        }
         case ND_RETURN:
             gen_expr(node->lhs);
             printf("    mov rax, %s\n", reg(--top));

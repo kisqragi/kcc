@@ -75,6 +75,7 @@ static long get_number(Token *tok) {
 // program    = stmt*
 // stmt       = "return"? expr ";"
 //            | "if" "(" expr ")" stmt ("else" stmt)?
+//            | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 // expr       = assign 
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -88,6 +89,7 @@ static long get_number(Token *tok) {
 
 // stmt = "return"? expr ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
+//      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 static Node *stmt(Token **rest, Token *tok) {
     Node *node;
 
@@ -106,6 +108,29 @@ static Node *stmt(Token **rest, Token *tok) {
         if (equal(tok, "else"))
             node->els = stmt(&tok, tok->next);
         *rest = tok;
+        return node;
+    }
+
+    if (equal(tok, "for")) {
+        node = new_node(ND_FOR);
+        tok = skip(tok->next, "(");
+
+        // initとincは値を返さない(処理するだけ)
+        if (!equal(tok, ";"))
+            node->init = new_unary(ND_EXPR_STMT, expr(&tok, tok));
+        tok = skip(tok, ";");
+
+        // condは比較結果の値を返す
+        if (!equal(tok, ";"))
+            node->cond = expr(&tok, tok);
+        tok = skip(tok, ";");
+
+        if (!equal(tok, ")"))
+            node->inc = new_unary(ND_EXPR_STMT, expr(&tok, tok));
+
+        tok = skip(tok, ")");
+
+        node->then = stmt(rest, tok);
         return node;
     }
 
