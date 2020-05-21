@@ -72,6 +72,8 @@ typedef struct Node Node;
 struct Node {
     NodeKind kind;  // ノード型
     Node *next;     // 次ノード
+    Token *tok;
+
     Node *lhs;      // 左辺
     Node *rhs;      // 右辺
 
