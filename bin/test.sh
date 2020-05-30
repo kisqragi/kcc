@@ -3,9 +3,9 @@ assert() {
     expected="$1"
     input="$2"
 
-    ./kcc "$input" > tmp.s || exit
-    gcc -o tmp tmp.s
-    ./tmp
+    ./bin/kcc "$input" > obj/tmp.s || exit
+    gcc -o obj/tmp obj/tmp.s
+    obj/tmp
     actual="$?"
 
     if [ "$actual" = "$expected" ]; then
