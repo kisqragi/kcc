@@ -4,6 +4,7 @@
 Var *locals;
 
 static Node *compound_stmt(Token **rest, Token *tok);
+static Node *stmt(Token **rest, Token *tok);
 static Node *expr_stmt(Token **rest, Token *tok);
 static Node *expr(Token **rest, Token *tok);
 static Node *assign(Token **rest, Token *tok);
@@ -223,6 +224,54 @@ static Node *equality(Token **rest, Token *tok) {
     }
 }
 
+static Node *new_add(Node *lhs, Node *rhs, Token *tok) {
+    add_type(lhs);
+    add_type(rhs);
+
+    // num + num
+    if (is_integer(lhs->ty) && is_integer(rhs->ty))
+        return new_binary(ND_ADD, lhs, rhs, tok);
+
+    if (lhs->ty->base && rhs->ty->base)
+        error_tok(tok, "invalid operands");
+
+    // `num + ptr` を `ptr + num` へ整型する
+    if (!lhs->ty->base && rhs->ty->base) {
+        Node *tmp = lhs;
+        lhs = rhs;
+        rhs = tmp;
+    }
+
+    // ptr + num
+    // 8バイト単位(今サポートしているint型の単位)
+    rhs = new_binary(ND_MUL, rhs, new_num(8, tok), tok);
+    return new_binary(ND_ADD, lhs, rhs, tok);
+}
+
+static Node *new_sub(Node *lhs, Node *rhs, Token *tok) {
+    add_type(lhs);
+    add_type(rhs);
+
+    // num - num
+    if (is_integer(lhs->ty) && is_integer(rhs->ty))
+        return new_binary(ND_SUB, lhs, rhs, tok);
+
+    // ptr - num
+    if (lhs->ty->base && is_integer(rhs->ty)) {
+        rhs = new_binary(ND_MUL, rhs, new_num(8, tok), tok);
+        return new_binary(ND_SUB, lhs, rhs, tok);
+    }
+
+    // ptr - ptr, ptr - ptr の結果をサイズで割った値が返る
+    // それは要素数だが、結果は負の値にもなる
+    if (lhs->ty->base && rhs->ty->base) {
+        Node *node = new_binary(ND_SUB, lhs, rhs, tok);
+        return new_binary(ND_DIV, node, new_num(8, tok), tok);
+    }
+
+    error_tok(tok, "invalid operands");
+}
+
 // relational = add ("<" add | "<=" | ">" add | ">=" add)*
 static Node *relational(Token **rest, Token *tok) {
     Node *node = add(&tok, tok);
@@ -263,12 +312,12 @@ static Node *add(Token **rest, Token *tok) {
         Token *start = tok;
 
         if (equal(tok, "+")) {
-            node = new_binary(ND_ADD, node, mul(&tok, tok->next), start);
+            node = new_add(node, mul(&tok, tok->next), start);
             continue;
         }
 
         if (equal(tok, "-")) {
-            node = new_binary(ND_SUB, node, mul(&tok, tok->next), start);
+            node = new_sub(node, mul(&tok, tok->next), start);
             continue;
         }
 
