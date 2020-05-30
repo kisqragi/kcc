@@ -48,6 +48,17 @@ Token *skip(Token *tok, char *s) {
     return tok->next;
 }
 
+// トークンが期待するトークンだった場合、現在のトークンを消費して
+// 真を返す。違う場合消費せず偽を返す
+bool consume(Token **rest, Token *tok, char *str) {
+    if (equal(tok, str)) {
+        *rest = tok->next;
+        return true;
+    }
+    *rest = tok;
+    return false;
+}
+
 // 新しいトークンを作成し、curの次のトークンとして追加する
 static Token *new_token(TokenKind kind, Token *cur, char *loc, int len) {
     Token *tok = calloc(1, sizeof(Token));
@@ -64,7 +75,7 @@ static bool startswith(char *p, char *q) {
 }
 
 static bool is_keyword(Token *tok) {
-    static char *kw[] = {"return", "if", "else", "for", "while"};
+    static char *kw[] = {"return", "if", "else", "for", "while", "int"};
 
     for (int i = 0; i < sizeof(kw) / sizeof(kw); i++)
         if (equal(tok, kw[i]))

@@ -58,12 +58,19 @@ static Node *new_var_node(Var *var, Token *tok) {
     return node;
 }
 
-static Var *new_lvar(char *name) {
+static Var *new_lvar(char *name, Type *ty) {
     Var *var = calloc(1, sizeof(Var));
     var->name = name;
+    var->ty = ty;
     var->next = locals;
     locals = var;
     return var;
+}
+
+static char *get_ident(Token *tok) {
+    if (tok->kind != TK_IDENT)
+        error_tok(tok, "expected an identifier");
+    return strndup(tok->loc, tok->len);
 }
 
 // トークンが数値の場合、値を返す
@@ -71,6 +78,57 @@ static long get_number(Token *tok) {
     if (tok->kind != TK_NUM)
         error_tok(tok, "expected a number");
     return tok->val;
+}
+
+// typespec = "int"
+// typespec = type-specifier = 型指定子
+static Type *typespec(Token **rest, Token *tok) {
+    *rest = skip(tok, "int");
+    return ty_int;
+}
+
+// declarator = "*"* ident
+static Type *declarator(Token **rest, Token *tok, Type *ty) {
+    while (consume(&tok, tok, "*"))
+        ty = pointer_to(ty);
+
+    if (tok->kind != TK_IDENT)
+        error_tok(tok, "expected a variable name");
+
+    ty->name = tok;
+    *rest = tok->next;
+    return ty;
+}
+
+// declaration = typespec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
+static Node *declaration(Token **rest, Token *tok) {
+    Type *basety = typespec(&tok, tok);
+
+    Node head = {};
+    Node *cur = &head;
+    int cnt = 0;
+
+    while (!equal(tok, ";")) {
+        if (cnt++ > 0)
+            tok = skip(tok, ",");
+
+        Type *ty = declarator(&tok, tok, basety);
+        Var *var = new_lvar(get_ident(ty->name), ty);
+
+        if (!equal(tok, "="))
+            continue;
+
+        Node *lhs = new_var_node(var, ty->name);
+        Node *rhs = assign(&tok, tok->next);
+        Node *node = new_binary(ND_ASSIGN, lhs, rhs, tok);
+        cur = cur->next = new_unary(ND_EXPR_STMT, node, tok);
+
+    }
+
+    Node *node = new_node(ND_BLOCK, tok);
+    node->body = head.next;
+    *rest = tok->next;
+    return node;
 }
 
 //==================================================
@@ -83,7 +141,10 @@ static long get_number(Token *tok) {
 //               | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //               | "while" "(" expr ")" stmt
 //               | "{" compound_stmt
-// compound-stmt = stmt* "}"
+// declaration   = typespec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
+// declarator    = "*"* ident
+// typespec      = "int"
+// compound-stmt = (declaration | stmt)* "}"
 // expr-stmt     = expr
 // expr          = assign
 // assign        = equality ("=" assign)?
@@ -168,13 +229,18 @@ static Node *stmt(Token **rest, Token *tok) {
     return node;
 }
 
-// compound-stmt = stmt* "}"
+// compound-stmt = (declaration | stmt)* "}"
 static Node *compound_stmt(Token **rest, Token *tok) {
     Node *node = new_node(ND_BLOCK, tok);
     Node head;
     Node *cur = &head;
-    while (!equal(tok, "}"))
-        cur = cur->next = stmt(&tok, tok);
+    while (!equal(tok, "}")) {
+        if (equal(tok, "int"))
+            cur = cur->next = declaration(&tok, tok);
+        else
+            cur = cur->next = stmt(&tok, tok);
+        add_type(cur);
+    }
 
     node->body = head.next;
     *rest = tok->next;
@@ -376,7 +442,7 @@ static Node *primary(Token **rest, Token *tok) {
     if (tok->kind == TK_IDENT) {
         Var *var = find_var(tok);
         if (!var)
-            var = new_lvar(strndup(tok->loc, tok->len));
+            error_tok(tok, "undefined variable");
         *rest = tok->next;
         return new_var_node(var, tok);
     }

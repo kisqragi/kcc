@@ -35,6 +35,7 @@ void error(char *fmt, ...);
 void error_tok(Token *tok, char *fmt, ...);
 bool equal(Token *tok, char *s);
 Token *skip(Token *tok, char *s);
+bool consume(Token **rest, Token *tok, char *str);
 Token *tokenize(char *p);
 
 //
@@ -46,6 +47,7 @@ typedef struct Var Var;
 struct Var {
     Var *next;
     char *name; // 変数名
+    Type *ty;   // Type
     int offset; // rbpからの距離
 };
 
@@ -115,10 +117,18 @@ typedef enum {
 
 struct Type {
     TypeKind kind;
+
+    // Pointer
     Type *base;
+
+    // 宣言
+    Token *name;
 };
 
+extern Type *ty_int;
+
 bool is_integer(Type *ty);
+Type *pointer_to(Type *base);
 void add_type(Node *node);
 
 //
