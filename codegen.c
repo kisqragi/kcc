@@ -2,6 +2,7 @@
 
 static int top;
 static int labelseq = 1;
+static char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
 static char *reg(int idx) {
     static char *r[] = {"r10", "r11", "r12", "r13", "r14", "r15"};
@@ -55,13 +56,26 @@ static void gen_expr(Node *node) {
             gen_addr(node->lhs);
             store();
             return;
-        case ND_FUNCALL:
+        case ND_FUNCALL: {
+            int nargs = 0;
+            for (Node *arg = node->args; arg; arg = arg->next) {
+                gen_expr(arg);
+                nargs++;
+            }
+
+            for (int i = 1; i <= nargs; i++) {
+                printf("    mov %s, %s\n", argreg[nargs - i], reg(--top));
+            }
+
             printf("    push r10\n");
             printf("    push r11\n");
             printf("    mov rax, 0\n");
             printf("    call %s\n", node->funcname);
+            printf("    pop r11\n");
+            printf("    pop r10\n");
             printf("    mov %s, rax\n", reg(top++));
             return;
+        }
     }
 
 

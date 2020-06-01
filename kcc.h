@@ -96,6 +96,7 @@ struct Node {
 
     // 関数呼び出し
     char *funcname;
+    Node *args;
 
     Var *var;       // ND_VARの場合、変数情報を格納するのに使う
     long val;       // ND_NUMの場合、値を格納するのに使う

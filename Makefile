@@ -1,21 +1,16 @@
 CFLAGS=-std=c11 -g -static -fno-common
-TARGET=./bin/kcc
-SRCDIR=./src
-SRCS=$(wildcard src/*.c)
-OBJDIR=./obj
-OBJS=$(addprefix $(OBJDIR)/, $(notdir $(SRCS:.c=.o)))
-INCLUDE=-Iinclude
+SRCS=$(wildcard *.c)
+OBJS=$(SRCS:.c=.o)
 
-$(TARGET): $(OBJS)
+kcc: $(OBJS)
 	$(CC) -o $@ $(OBJS) $(LDFLAGS)
 
-$(OBJDIR)/%.o : $(SRCDIR)/%.c
-	$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
+$(OBJS): kcc.h
 
-test: $(TARGET)
-	./bin/test.sh
+test: kcc
+	./test.sh
 
 clean:
-	rm -f ./bin/kcc ./obj/*
+	rm -f kcc *.o *~ tmp*
 
 .PHONY: test clean

@@ -92,7 +92,7 @@ static void convert_keywords(Token *tok) {
 Token *tokenize(char *p) {
     current_input = p;
 
-    Token head;
+    Token head = {};
     Token *cur = &head;
 
     while (*p) {
