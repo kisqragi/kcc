@@ -154,7 +154,8 @@ static Node *declaration(Token **rest, Token *tok) {
 // mul           = unary ("*" unary | "/" unary)*
 // unary         =  ("+" | "-" | "*" | "&")? unary
 //               | primary
-// primary       = "(" expr ")" | ident | num
+// primary       = "(" expr ")" | ident args? | num
+// args          = "(" ")"
 //
 //==================================================
 
@@ -431,7 +432,8 @@ static Node *unary(Token **rest, Token *tok) {
     return primary(rest, tok);
 }
 
-// primary = "(" expr ")" | ident | num
+// primary = "(" expr ")" | ident args? | num
+// args = "(" ")"
 static Node *primary(Token **rest, Token *tok) {
     if (equal(tok, "(")) {
         Node *node = expr(&tok, tok->next);
@@ -440,6 +442,14 @@ static Node *primary(Token **rest, Token *tok) {
     }
 
     if (tok->kind == TK_IDENT) {
+        // 関数呼び出し
+        if (equal(tok->next, "(")) {
+            Node *node = new_node(ND_FUNCALL, tok);
+            node->funcname = strndup(tok->loc, tok->len);
+            *rest = skip(tok->next->next, ")");
+            return node;
+        }
+
         Var *var = find_var(tok);
         if (!var)
             error_tok(tok, "undefined variable");

@@ -55,6 +55,13 @@ static void gen_expr(Node *node) {
             gen_addr(node->lhs);
             store();
             return;
+        case ND_FUNCALL:
+            printf("    push r10\n");
+            printf("    push r11\n");
+            printf("    mov rax, 0\n");
+            printf("    call %s\n", node->funcname);
+            printf("    mov %s, rax\n", reg(top++));
+            return;
     }
 
 
