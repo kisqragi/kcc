@@ -11,13 +11,15 @@ int main(int argc, char **argv) {
     Token *tok = tokenize(argv[1]);
     Function *prog = parse(tok);
 
-    // オフセットの割り当て
-    int offset = 32;    // callee-save registers用の32Byte
-    for (Var *var = prog->locals; var; var = var->next) {
-        offset += 8;
-        var->offset = offset;
+    for (Function *fn = prog; fn; fn = fn->next) {
+        // オフセットの割り当て
+        int offset = 32;    // callee-save registers用の32Byte
+        for (Var *var = fn->locals; var; var = var->next) {
+            offset += 8;
+            var->offset = offset;
+        }
+        fn->stack_size = align_to(offset, 16);
     }
-    prog->stack_size = align_to(offset, 16);
 
     codegen(prog);
 

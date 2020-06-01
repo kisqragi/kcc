@@ -3,6 +3,8 @@
 // ローカル変数のリスト
 Var *locals;
 
+static Type *declarator(Token **rest, Token *tok, Type *ty);
+static Type *typespec(Token **rest, Token *tok);
 static Node *compound_stmt(Token **rest, Token *tok);
 static Node *stmt(Token **rest, Token *tok);
 static Node *expr_stmt(Token **rest, Token *tok);
@@ -80,6 +82,22 @@ static long get_number(Token *tok) {
     return tok->val;
 }
 
+// funcdef = typespec declarator compound-stmt
+static Function *funcdef(Token **rest, Token *tok) {
+    locals = NULL;
+
+    Type *ty = typespec(&tok, tok);
+    ty = declarator(&tok, tok, ty);
+
+    Function *fn = calloc(1, sizeof(Function));
+    fn->name = get_ident(ty->name);
+
+    tok = skip(tok, "{");
+    fn->node = compound_stmt(rest, tok)->body;
+    fn->locals = locals;
+    return fn;
+}
+
 // typespec = "int"
 // typespec = type-specifier = 型指定子
 static Type *typespec(Token **rest, Token *tok) {
@@ -87,7 +105,17 @@ static Type *typespec(Token **rest, Token *tok) {
     return ty_int;
 }
 
-// declarator = "*"* ident
+// type-suffix = ("(" func-params)?
+static Type *type_suffix(Token **rest, Token *tok, Type *ty) {
+    if (equal(tok, "(")) {
+        *rest = skip(tok->next, ")");
+        return func_type(ty);
+    }
+    *rest = tok;
+    return ty;
+}
+
+// declarator = "*"* ident type-suffix
 static Type *declarator(Token **rest, Token *tok, Type *ty) {
     while (consume(&tok, tok, "*"))
         ty = pointer_to(ty);
@@ -95,8 +123,8 @@ static Type *declarator(Token **rest, Token *tok, Type *ty) {
     if (tok->kind != TK_IDENT)
         error_tok(tok, "expected a variable name");
 
+    ty = type_suffix(rest, tok->next, ty);
     ty->name = tok;
-    *rest = tok->next;
     return ty;
 }
 
@@ -134,17 +162,19 @@ static Node *declaration(Token **rest, Token *tok) {
 //==================================================
 // [生成規則]
 //
-// program       = stmt*
+// program       = funcdef*
+// funcdef       = typespec declarator compound-stmt
+// declarator    = "*"* ident type-suffix
+// type-suffix   = ("(" func-params)?
+// typespec      = "int"
+// compound-stmt = (declaration | stmt)* "}"
+// declaration   = typespec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
 // stmt          = "return"? expr ";"
 //               | "{" stmt* "}"
 //               | "if" "(" expr ")" stmt ("else" stmt)?
 //               | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //               | "while" "(" expr ")" stmt
 //               | "{" compound_stmt
-// declaration   = typespec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
-// declarator    = "*"* ident
-// typespec      = "int"
-// compound-stmt = (declaration | stmt)* "}"
 // expr-stmt     = expr
 // expr          = assign
 // assign        = equality ("=" assign)?
@@ -482,12 +512,13 @@ static Node *primary(Token **rest, Token *tok) {
     return node;
 }
 
-// program = stmt*
+// program = funcdef*
 Function *parse(Token *tok) {
-    tok = skip(tok, "{");
+    Function head = {};
+    Function *cur = &head;
 
-    Function *prog = calloc(1, sizeof(Function));
-    prog->node = compound_stmt(&tok, tok)->body;
-    prog->locals = locals;
-    return prog;
+    while (tok->kind != TK_EOF)
+        cur = cur->next = funcdef(&tok, tok);
+
+    return head.next;
 }

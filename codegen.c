@@ -3,6 +3,7 @@
 static int top;
 static int labelseq = 1;
 static char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+static Function *current_fn;
 
 static char *reg(int idx) {
     static char *r[] = {"r10", "r11", "r12", "r13", "r14", "r15"};
@@ -173,7 +174,7 @@ static void gen_stmt(Node *node) {
         case ND_RETURN:
             gen_expr(node->lhs);
             printf("    mov rax, %s\n", reg(--top));
-            printf("    jmp .L.return\n");
+            printf("    jmp .L.return.%s\n", current_fn->name);
             return;
         case ND_EXPR_STMT:
             gen_expr(node->lhs);
@@ -187,34 +188,38 @@ static void gen_stmt(Node *node) {
 void codegen(Function *prog) {
     
     printf(".intel_syntax noprefix\n");
-    printf(".globl main\n");
-    printf("main:\n");
 
-    // プロローグ
-    // callee-saved
-    // 呼び出し先がレジスタを保存する　
-    printf("    push rbp\n");
-    printf("    mov rbp, rsp\n");
-    printf("    sub rsp, %d\n", prog->stack_size);
-    printf("    mov [rbp-8], r12\n");
-    printf("    mov [rbp-16], r13\n");
-    printf("    mov [rbp-24], r14\n");
-    printf("    mov [rbp-32], r15\n");
+    for (Function *fn = prog; fn; fn = fn->next) {
+        printf(".globl %s\n", fn->name);
+        printf("%s:\n", fn->name);
+        current_fn = fn;
 
-    // アセンブリのコードを生成する
-    for (Node *n = prog->node; n; n = n->next) {
-        gen_stmt(n);
-        assert(top == 0);
+        // プロローグ
+        // callee-saved
+        // 呼び出し先がレジスタを保存する　
+        printf("    push rbp\n");
+        printf("    mov rbp, rsp\n");
+        printf("    sub rsp, %d\n", fn->stack_size);
+        printf("    mov [rbp-8], r12\n");
+        printf("    mov [rbp-16], r13\n");
+        printf("    mov [rbp-24], r14\n");
+        printf("    mov [rbp-32], r15\n");
+
+        // アセンブリのコードを生成する
+        for (Node *n = fn->node; n; n = n->next) {
+            gen_stmt(n);
+            assert(top == 0);
+        }
+
+        // 退避させたレジスタの値を元に戻す
+        printf(".L.return.%s:\n", fn->name);
+        printf("    mov r12, [rbp-8]\n");
+        printf("    mov r13, [rbp-16]\n");
+        printf("    mov r14, [rbp-24]\n");
+        printf("    mov r15, [rbp-32]\n");
+        printf("    mov rsp, rbp\n");
+        printf("    pop rbp\n");
+        printf("    ret\n");
     }
-
-    // 退避させたレジスタの値を元に戻す
-    printf(".L.return:\n");
-    printf("    mov r12, [rbp-8]\n");
-    printf("    mov r13, [rbp-16]\n");
-    printf("    mov r14, [rbp-24]\n");
-    printf("    mov r15, [rbp-32]\n");
-    printf("    mov rsp, rbp\n");
-    printf("    pop rbp\n");
-    printf("    ret\n");
 
 }
