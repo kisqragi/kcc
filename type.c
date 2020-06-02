@@ -6,6 +6,12 @@ bool is_integer(Type *ty) {
     return ty->kind == TY_INT;
 }
 
+Type *copy_type(Type *ty) {
+    Type *ret = calloc(1, sizeof(Type));
+    *ret = *ty;
+    return ret;
+}
+
 // 何型に対してのポインタかを設定する
 Type *pointer_to(Type *base) {
     Type *ty = calloc(1, sizeof(Type));
@@ -34,6 +40,9 @@ void add_type(Node *node) {
     add_type(node->inc);
 
     for (Node *n = node->body; n; n = n->next)
+        add_type(n);
+
+    for (Node *n = node->args; n; n = n->next)
         add_type(n);
 
     switch (node->kind) {

@@ -205,6 +205,13 @@ void codegen(Function *prog) {
         printf("    mov [rbp-24], r14\n");
         printf("    mov [rbp-32], r15\n");
 
+        // スタックに引数を保存する
+        int i = 0;
+        for (Var *var = fn->params; var; var = var->next)
+            i++;
+        for (Var *var = fn->params; var; var = var->next)
+            printf("    mov [rbp-%d], %s\n", var->offset, argreg[--i]);
+
         // アセンブリのコードを生成する
         for (Node *n = fn->node; n; n = n->next) {
             gen_stmt(n);
