@@ -1,7 +1,8 @@
 #include "kcc.h"
 
 // ローカル変数のリスト
-Var *locals;
+static Var *locals;
+static Var *globals;
 
 static Type *declarator(Token **rest, Token *tok, Type *ty);
 static Type *typespec(Token **rest, Token *tok);
@@ -25,6 +26,13 @@ static Var *find_var(Token *tok) {
             !strncmp(tok->loc, var->name, tok->len))
             return var;
     }
+
+    for (Var *var = globals; var; var = var->next) {
+        if (strlen(var->name) == tok->len &&
+            !strncmp(tok->loc, var->name, tok->len))
+            return var;
+    }
+
     return NULL;
 }
 
@@ -65,8 +73,19 @@ static Var *new_lvar(char *name, Type *ty) {
     Var *var = calloc(1, sizeof(Var));
     var->name = name;
     var->ty = ty;
+    var->is_local = true;
     var->next = locals;
     locals = var;
+    return var;
+}
+
+static Var *new_gvar(char *name, Type *ty) {
+    Var *var = calloc(1, sizeof(Var));
+    var->name = name;
+    var->ty = ty;
+    var->is_local = false;
+    var->next = globals;
+    globals = var;
     return var;
 }
 
@@ -196,7 +215,7 @@ static Node *declaration(Token **rest, Token *tok) {
 //==================================================
 // [生成規則]
 //
-// program       = funcdef*
+// program       = (funcdef | global-var)*
 // funcdef       = typespec declarator compound-stmt
 // declarator    = "*"* ident type-suffix
 // func-params   = (param ("," param)*)? ")"
@@ -575,13 +594,35 @@ static Node *primary(Token **rest, Token *tok) {
     return node;
 }
 
-// program = funcdef*
-Function *parse(Token *tok) {
+// program = (funcdef | global-var)*
+Program *parse(Token *tok) {
     Function head = {};
     Function *cur = &head;
+    globals = NULL;
 
-    while (tok->kind != TK_EOF)
-        cur = cur->next = funcdef(&tok, tok);
+    while (tok->kind != TK_EOF) {
+        Token *start = tok;
+        Type *basety = typespec(&tok, tok);
+        Type *ty = declarator(&tok, tok, basety);
 
-    return head.next;
+        // Function
+        if (ty->kind == TY_FUNC) {
+            cur = cur->next = funcdef(&tok, start);
+            continue;
+        }
+
+        // グローバル変数
+        while (true) {
+            new_gvar(get_ident(ty->name), ty);
+            if (consume(&tok, tok, ";"))
+                break;
+            tok = skip(tok, ",");
+            ty = declarator(&tok, tok, basety);
+        }
+    }
+
+    Program *prog = calloc(1, sizeof(Program));
+    prog->globals = globals;
+    prog->fns = head.next;
+    return prog;
 }

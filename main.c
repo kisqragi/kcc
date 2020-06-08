@@ -9,9 +9,9 @@ int main(int argc, char **argv) {
         error("%s: invalid number of arguments\n", argv[0]);
 
     Token *tok = tokenize(argv[1]);
-    Function *prog = parse(tok);
+    Program *prog = parse(tok);
 
-    for (Function *fn = prog; fn; fn = fn->next) {
+    for (Function *fn = prog->fns; fn; fn = fn->next) {
         // オフセットの割り当て
         int offset = 32;    // callee-save registers用の32Byte
         for (Var *var = fn->locals; var; var = var->next) {

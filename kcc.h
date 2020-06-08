@@ -42,13 +42,14 @@ Token *tokenize(char *p);
 // parser.c
 //
 
-// ローカル変数
+// 変数
 typedef struct Var Var;
 struct Var {
     Var *next;
     char *name; // 変数名
     Type *ty;   // Type
     int offset; // rbpからの距離
+    bool is_local;
 };
 
 typedef enum {
@@ -112,7 +113,12 @@ struct Function {
     int stack_size;
 };
 
-Function *parse(Token *tok);
+typedef struct {
+    Var *globals;
+    Function *fns;
+} Program;
+
+Program *parse(Token *tok);
 
 //
 // typing.c
@@ -158,4 +164,4 @@ void add_type(Node *node);
 // codegen.c
 //
 
-void codegen(Function *prog);
+void codegen(Program *prog);
