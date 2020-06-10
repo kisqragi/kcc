@@ -123,9 +123,13 @@ static Function *funcdef(Token **rest, Token *tok) {
     return fn;
 }
 
-// typespec = "int"
+// typespec = "char" | "int"
 // typespec = type-specifier = 型指定子
 static Type *typespec(Token **rest, Token *tok) {
+    if (equal(tok, "char")) {
+        *rest = tok->next;
+        return ty_char;
+    }
     *rest = skip(tok, "int");
     return ty_int;
 }
@@ -224,7 +228,7 @@ static Node *declaration(Token **rest, Token *tok) {
 //               = "[" num "]" type-suffix
 //               | ε
 // param         = typespec declarator
-// typespec      = "int"
+// typespec      = "char" | "int"
 // compound-stmt = (declaration | stmt)* "}"
 // declaration   = typespec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
 // stmt          = "return"? expr ";"
@@ -319,13 +323,17 @@ static Node *stmt(Token **rest, Token *tok) {
     return node;
 }
 
+static bool is_typename(Token *tok) {
+    return equal(tok, "char") || equal(tok, "int");
+}
+
 // compound-stmt = (declaration | stmt)* "}"
 static Node *compound_stmt(Token **rest, Token *tok) {
     Node *node = new_node(ND_BLOCK, tok);
     Node head = {};
     Node *cur = &head;
     while (!equal(tok, "}")) {
-        if (equal(tok, "int")) {
+        if (is_typename(tok)) {
             cur = cur->next = declaration(&tok, tok);
         }
         else

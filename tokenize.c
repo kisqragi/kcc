@@ -75,12 +75,20 @@ static bool startswith(char *p, char *q) {
 }
 
 static bool is_keyword(Token *tok) {
-    static char *kw[] = {"return", "if", "else", "for", "while", "int", "sizeof"};
+    static char *kw[] = {"return", "if", "else", "for", "while", "int", "sizeof", "char"};
 
     for (int i = 0; i < sizeof(kw) / sizeof(kw); i++)
         if (equal(tok, kw[i]))
             return true;
     return false;
+}
+
+static bool is_alpha(char p) {
+    return isalpha(p) || p == '_';
+}
+
+static bool is_alnum(char p) {
+    return isalnum(p) || p == '_';
 }
 
 static void convert_keywords(Token *tok) {
@@ -111,9 +119,9 @@ Token *tokenize(char *p) {
             continue;
         }
 
-        if (isalpha(*p)) {
+        if (is_alpha(*p)) {
             char *q = p++;
-            while (isalnum(*p)) {
+            while (is_alnum(*p)) {
                 p++;
             }
             cur = new_token(TK_IDENT, cur, q, p - q);
