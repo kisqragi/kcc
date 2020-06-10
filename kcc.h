@@ -16,6 +16,7 @@ typedef struct Type Type;
 typedef enum {
     TK_RESERVED,    // キーワード(予約語)と区切り記号
     TK_IDENT,       // 識別子
+    TK_STR,         // 文字列リテラル
     TK_NUM,         // 数値
     TK_EOF,         // End Of File
 } TokenKind;
@@ -28,6 +29,9 @@ struct Token {
     long val;       // TK_NUMの場合に値を格納するのに使う
     char *loc;      // トークンの位置
     int len;        // トークンの長さ
+
+    char *contents; // '\0'を含む文字列リテラル
+    char cont_len;  // 文字列リテラルの長さ
 };
 
 
@@ -48,8 +52,13 @@ struct Var {
     Var *next;
     char *name; // 変数名
     Type *ty;   // Type
-    int offset; // rbpからの距離
     bool is_local;
+
+    // ローカル変数
+    int offset;
+
+    // グローバル変数
+    char *init_data;
 };
 
 typedef enum {

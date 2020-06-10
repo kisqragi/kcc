@@ -97,6 +97,21 @@ static void convert_keywords(Token *tok) {
             t->kind = TK_RESERVED;
 }
 
+static Token *read_string_literal(Token *cur, char *start) {
+    char *p = start + 1;    // eat '"'
+    while (*p && *p != '"') {
+        p++;
+    }
+
+    if (!*p)
+        error_at(start, "unclosed string literal");
+
+    Token *tok = new_token(TK_STR, cur, start, p - start + 1);
+    tok->contents = strndup(start + 1, p - start - 1);
+    tok->cont_len = p - start;
+    return tok;
+}
+
 Token *tokenize(char *p) {
     current_input = p;
 
@@ -119,6 +134,14 @@ Token *tokenize(char *p) {
             continue;
         }
 
+        // 文字列リテラル
+        if (*p == '"') {
+            cur = read_string_literal(cur, p);
+            p += cur->len;
+            continue;
+        }
+
+        // 識別子
         if (is_alpha(*p)) {
             char *q = p++;
             while (is_alnum(*p)) {
