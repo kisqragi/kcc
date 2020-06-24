@@ -97,7 +97,21 @@ static void convert_keywords(Token *tok) {
             t->kind = TK_RESERVED;
 }
 
-static char read_escaped_char(char *p) {
+static char read_escaped_char(char **new_pos, char *p) {
+    if ('0' <= *p && *p <= '7') {
+        // 8進数を読み取る
+        int c = *p++ - '0';
+        if ('0' <= *p && *p <= '7') {
+            c = (c << 3) | (*p++ - '0');
+            if ('0' <= *p && *p <= '7')
+                c = (c << 3) | (*p++ - '0');
+        }
+        *new_pos = p;
+        return c;
+    }
+
+    *new_pos = p + 1;
+
     switch (*p) {
         case 'a': return '\a';
         case 'b': return '\b';
@@ -127,8 +141,7 @@ static Token *read_string_literal(Token *cur, char *start) {
 
     while (*p != '"') {
         if (*p == '\\') {
-            buf[len++] = read_escaped_char(p + 1);
-            p += 2;
+            buf[len++] = read_escaped_char(&p, p + 1);
         } else {
             buf[len++] = *p++;
         }
