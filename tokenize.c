@@ -3,6 +3,9 @@
 // 入力文字列
 static char *current_input;
 
+// 入力ファイル名
+static char *current_filename;
+
 // エラーを表示して終了する
 void error(char *fmt, ...) {
     va_list ap;
@@ -13,9 +16,32 @@ void error(char *fmt, ...) {
 }
 
 // エラーメッセージを出力して終了する
+// メッセージの形式
+// foo.c:10: x = y + 1;
+//               ^ <error message here>
 static void verror_at(char *loc, char *fmt, va_list ap) {
-    int pos = loc - current_input;
-    fprintf(stderr, "%s\n", current_input);
+    // locの存在する行を探す
+    char *line = loc;
+    while (current_input < line && line[-1] != '\n')
+        line--;
+
+    char *end = loc;
+    while (*end != '\n')
+        end++;
+
+    // 行番号を取得
+    int line_no = 1;
+    for (char *p = current_input; p < line; p++)
+        if (*p == '\n')
+            line_no++;
+
+    // 行を表示
+    int ident = fprintf(stderr, "%s:%d: ", current_filename, line_no);
+    fprintf(stderr, "%.*s\n", (int)(end - line), line);
+
+    // エラーメッセージを表示する位置を計算
+    int pos = loc - line + ident;
+
     fprintf(stderr, "%*s", pos, "");
     fprintf(stderr, "^ ");
     vfprintf(stderr, fmt, ap);
@@ -187,7 +213,8 @@ static Token *read_string_literal(Token *cur, char *start) {
     return tok;
 }
 
-Token *tokenize(char *p) {
+static Token *tokenize(char *filename, char *p) {
+    current_filename = filename;
     current_input = p;
 
     Token head = {};
@@ -246,5 +273,50 @@ Token *tokenize(char *p) {
     new_token(TK_EOF, cur, p, 0);
     convert_keywords(head.next);
     return head.next;
+}
+
+static char *read_file(char *path) {
+    FILE *fp;
+
+    if (!strcmp(path, "-")) {
+        fp = stdin;
+    } else {
+        fp = fopen(path, "r");
+        if (!fp)
+            error("cannot open %s: %s", path, strerror(errno));
+    }
+
+    int buflen = 4096;
+    int nread = 0;
+    char *buf = malloc(buflen);
+
+    // ファイル全体の読み取り
+    while (true) {
+        // 末尾の"\n","\0"のために2バイト確保
+        int end = buflen - 2;
+        int n = fread(buf + nread, 1, end - nread, fp);
+        if (n == 0)
+            break;
+
+        nread += n;
+
+        if (nread == end) {
+            buflen *= 2;
+            buf = realloc(buf, buflen);
+        }
+    }
+
+    if (fp != stdin)
+        fclose(fp);
+
+    // ファイルが改行で終わっていない場合'\n'を追加する処理
+    if (nread == 0 || buf[nread - 1] != '\n')
+        buf[nread++] = '\n';
+    buf[nread] = '\0';
+    return buf;
+}
+
+Token *tokenize_file(char *path) {
+    return tokenize(path, read_file(path));
 }
 
