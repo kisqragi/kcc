@@ -261,7 +261,11 @@ static Node *declaration(Token **rest, Token *tok) {
 // unary         =  ("+" | "-" | "*" | "&")? unary
 //               | primary
 // postfix       = primary ("[" epxr "]")*
-// primary       = "(" expr ")" | "sizeof" unary | ident func-args? | str | num
+// primary       = "(" "{" stmt stmt* "}" ")"
+//               | "(" expr ")"
+//               | "sizeof" unary
+//               | ident func-args?
+//               | str
 // func-args     = "(" (assign ("," assign)*)? ")"
 //
 //==================================================
@@ -585,8 +589,28 @@ static Node *funcall(Token **rest, Token *tok) {
 
 }
 
-// primary = "(" expr ")" | "sizeof" unary | ident func-args? | str | num
+// primary = "(" "{" stmt stmt* "}" ")"
+//         | "(" expr ")"
+//         | "sizeof" unary
+//         | ident func-args?
+//         | str
+//         | num
 static Node *primary(Token **rest, Token *tok) {
+
+    if (equal(tok, "(") && equal(tok->next, "{")) {
+        Node *node = new_node(ND_STMT_EXPR, tok);
+        node->body = compound_stmt(&tok, tok->next->next)->body;
+        *rest = skip(tok, ")");
+
+        Node *cur = node->body;
+        while (cur->next)
+            cur = cur->next;
+
+        if (cur->kind != ND_EXPR_STMT)
+            error_tok(cur->tok, "statment expression returning void is not supported");
+        return node;
+    }
+
     if (equal(tok, "(")) {
         Node *node = expr(&tok, tok->next);
         *rest = skip(tok, ")");

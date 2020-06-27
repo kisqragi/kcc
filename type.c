@@ -93,5 +93,12 @@ void add_type(Node *node) {
                 error_tok(node->tok, "invalid pointer dereference");
             node->ty = node->lhs->ty->base;
             return;
+        case ND_STMT_EXPR: {
+            Node *stmt = node->body;
+            while (stmt->next)
+                stmt = stmt->next;
+            node->ty = stmt->lhs->ty;
+            return;
+        }
     }
 }
