@@ -221,6 +221,24 @@ static Token *tokenize(char *filename, char *p) {
     Token *cur = &head;
 
     while (*p) {
+
+        // 行コメントをスキップ
+        if (startswith(p, "//")) {
+            p += 2;
+            while (*p != '\n')
+                p++;
+            continue;
+        }
+
+        // ブロックコメントをスキップ
+        if (startswith(p, "/*")) {
+            char *q = strstr(p + 2, "*/");
+            if (!q)
+                error_at(p, "unclosed block comment");
+            p = q + 2;
+            continue;
+        }
+
         // 空白文字をスキップ
         if (isspace(*p)) {
             p++;
