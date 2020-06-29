@@ -132,7 +132,7 @@ typedef struct {
 Program *parse(Token *tok);
 
 //
-// typing.c
+// type.c
 //
 
 typedef enum {
