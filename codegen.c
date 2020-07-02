@@ -164,9 +164,10 @@ static void gen_stmt(Node *node) {
                 printf("    cmp %s, 0\n", reg(--top));
                 printf("    je .L.else.%d\n", seq);
                 gen_stmt(node->then);
+                printf("    jmp .L.end.%d\n", seq);
                 printf(".L.else.%d:\n", seq);
                 gen_stmt(node->els);
-                printf("L.end.%d:\n", seq);
+                printf(".L.end.%d:\n", seq);
             } else {
                 gen_expr(node->cond);
                 printf("    cmp %s, 0\n", reg(--top));

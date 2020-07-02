@@ -8,9 +8,11 @@ kcc: $(OBJS)
 $(OBJS): kcc.h
 
 test: kcc
-	./test.sh
+	./kcc tests/tests.c > tmp.s
+	gcc -static -o tmp tmp.s
+	./tmp
 
 clean:
-	rm -f kcc *.o *~ tmp*
+	rm -rf kcc *.o *~ tmp* tests/*~ tests/*.o
 
 .PHONY: test clean
