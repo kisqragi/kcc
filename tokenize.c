@@ -19,7 +19,7 @@ void error(char *fmt, ...) {
 // メッセージの形式
 // foo.c:10: x = y + 1;
 //               ^ <error message here>
-static void verror_at(char *loc, char *fmt, va_list ap) {
+static void verror_at(int line_no, char *loc, char *fmt, va_list ap) {
     // locの存在する行を探す
     char *line = loc;
     while (current_input < line && line[-1] != '\n')
@@ -28,12 +28,6 @@ static void verror_at(char *loc, char *fmt, va_list ap) {
     char *end = loc;
     while (*end != '\n')
         end++;
-
-    // 行番号を取得
-    int line_no = 1;
-    for (char *p = current_input; p < line; p++)
-        if (*p == '\n')
-            line_no++;
 
     // 行を表示
     int ident = fprintf(stderr, "%s:%d: ", current_filename, line_no);
@@ -50,15 +44,19 @@ static void verror_at(char *loc, char *fmt, va_list ap) {
 }
 
 static void error_at(char *loc, char *fmt, ...) {
+    int line_no = 1;
+    for (char *p = current_input; p < loc; p++)
+        if (*p == '\n')
+            line_no++;
     va_list ap;
     va_start(ap, fmt);
-    verror_at(loc, fmt, ap);
+    verror_at(line_no, loc, fmt, ap);
 }
 
 void error_tok(Token *tok, char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    verror_at(tok->loc, fmt, ap);
+    verror_at(tok->line_no, tok->loc, fmt, ap);
 }
 
 // 現在のトークンが's'であることを確認する
@@ -135,6 +133,21 @@ static void convert_keywords(Token *tok) {
     for (Token *t = tok; t->kind != TK_EOF; t = t->next)
         if (t->kind == TK_IDENT && is_keyword(t))
             t->kind = TK_RESERVED;
+}
+
+// 全てのトークンに行番号を割り当てる
+static void add_line_info(Token *tok) {
+    char *p = current_input;
+    int line_no = 1;
+
+    do {
+        if (p == tok->loc) {
+            tok->line_no = line_no;
+            tok = tok->next;
+        }
+        if (*p == '\n')
+            line_no++;
+    } while (*p++);
 }
 
 static char read_escaped_char(char **new_pos, char *p) {
@@ -289,6 +302,7 @@ static Token *tokenize(char *filename, char *p) {
     }
 
     new_token(TK_EOF, cur, p, 0);
+    add_line_info(head.next);
     convert_keywords(head.next);
     return head.next;
 }

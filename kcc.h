@@ -33,6 +33,8 @@ struct Token {
 
     char *contents; // '\0'を含む文字列リテラル
     char cont_len;  // 文字列リテラルの長さ
+
+    int line_no;    // 行番号
 };
 
 
