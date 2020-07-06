@@ -74,6 +74,7 @@ typedef enum {
     ND_LT,          // <=
     ND_LE,          // >=
     ND_ASSIGN,      // =
+    ND_COMMA,       // ,
     ND_ADDR,        // &
     ND_DEREF,       // *
     ND_RETURN,      // "return"
