@@ -55,6 +55,7 @@ static void store(Type *ty) {
 }
 
 static void gen_expr(Node *node) {
+    printf(".loc 1 %d\n", node->tok->line_no);
     switch (node->kind) {
         case ND_NUM:
             printf("    mov %s, %lu\n", reg(top++), node->val);
@@ -156,6 +157,7 @@ static void gen_expr(Node *node) {
 }
 
 static void gen_stmt(Node *node) {
+    printf(".loc 1 %d\n", node->tok->line_no);
     switch (node->kind) {
         case ND_IF: {
             int seq =  labelseq++;

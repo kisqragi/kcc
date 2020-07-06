@@ -21,6 +21,8 @@ int main(int argc, char **argv) {
         fn->stack_size = align_to(offset, 16);
     }
 
+    printf(".file 1 \"%s\"\n", argv[1]);
+
     codegen(prog);
 
     return 0;
