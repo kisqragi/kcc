@@ -84,6 +84,7 @@ typedef enum {
     ND_FUNCALL,     // 関数呼び出し
     ND_EXPR_STMT,   // Expression statement
     ND_STMT_EXPR,   // Statement expression
+    ND_NULL_EXPR,   // 何もしない式
     ND_VAR,         // Variable
     ND_NUM,         // Integer
 } NodeKind;
@@ -111,7 +112,8 @@ struct Node {
 
     // 関数呼び出し
     char *funcname;
-    Node *args;
+    Var **args;
+    int nargs;
 
     Var *var;       // ND_VARの場合、変数情報を格納するのに使う
     long val;       // ND_NUMの場合、値を格納するのに使う

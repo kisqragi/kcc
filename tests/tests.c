@@ -7,6 +7,9 @@ int sub(int x, int y) { return x - y; }
 int add5(int a, int b, int c, int d, int e) {
     return a + b + c + d + e;
 }
+int add6(int a, int b, int c, int d, int e, int f) {
+    return a + b + c + d + e + f;
+}
 
 int assert(int expected, int actual, char *code) {
     if (expected == actual) {
@@ -197,6 +200,9 @@ int main() {
     assert(3, (1,2,3), "(1,2,3)");
     assert(5, ({ int i=2, j=3; (i=5,j)=6; i; }), "({ int i=2, j=3; (i=5,j)=6; i; })");
     assert(6, ({ int i=2, j=3; (i=5,j)=6; j; }), "({ int i=2, j=3; (i=5,j)=6; j; })");
+
+    assert(21, add6(1,2,3,4,5,6), "add6(1,2,3,4,5,6)");
+
     printf("OK\n");
     return 0;
 }

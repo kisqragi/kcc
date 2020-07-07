@@ -89,24 +89,28 @@ static void gen_expr(Node *node) {
                 gen_stmt(n);
             top++;
             return;
+        case ND_NULL_EXPR:
+            top++;
+            return;
         case ND_COMMA:
             gen_expr(node->lhs);
             top--;
             gen_expr(node->rhs);
             return;
         case ND_FUNCALL: {
-            int nargs = 0;
-            for (Node *arg = node->args; arg; arg = arg->next) {
-                gen_expr(arg);
-                nargs++;
-            }
-
-            for (int i = 1; i <= nargs; i++) {
-                printf("    mov %s, %s\n", argreg64[nargs - i], reg(--top));
-            }
-
+            // caller-saved registers
             printf("    push r10\n");
             printf("    push r11\n");
+
+            // スタックから引数をロードする
+            for (int i = 0; i < node->nargs; i++) {
+                Var *arg = node->args[i];
+                if (arg->ty->size == 1)
+                    printf("    movsx %s, byte ptr [rbp-%d]\n", argreg64[i], arg->offset);
+                else
+                    printf("    mov %s, [rbp-%d]\n", argreg64[i], arg->offset);
+            }
+
             printf("    mov rax, 0\n");
             printf("    call %s\n", node->funcname);
             printf("    pop r11\n");
