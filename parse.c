@@ -30,6 +30,7 @@ static Node *equality(Token **rest, Token *tok);
 static Node *relational(Token **rest, Token *tok);
 static Node *add(Token **rest, Token *tok);
 static Node *mul(Token **rest, Token *tok);
+static Type *struct_decl(Token **rest, Token *tok);
 static Node *postfix(Token **rest, Token *tok);
 static Node *unary(Token **rest, Token *tok);
 static Node *primary(Token **rest, Token *tok);
@@ -169,15 +170,23 @@ static Function *funcdef(Token **rest, Token *tok) {
     return fn;
 }
 
-// typespec = "char" | "int"
+// typespec = "char" | "int" | struct-decl
 // typespec = type-specifier = 型指定子
 static Type *typespec(Token **rest, Token *tok) {
     if (equal(tok, "char")) {
         *rest = tok->next;
         return ty_char;
     }
-    *rest = skip(tok, "int");
-    return ty_int;
+
+    if (equal(tok, "int")) {
+        *rest = skip(tok, "int");
+        return ty_int;
+    }
+
+    if (equal(tok, "struct"))
+        return struct_decl(rest, tok->next);
+
+    error_tok(tok, "typename expected");
 }
 
 // func-params = (param ("," param)*)? ")"
@@ -265,40 +274,41 @@ static Node *declaration(Token **rest, Token *tok) {
 //==================================================
 // [生成規則]
 //
-// program       = (funcdef | global-var)*
-// funcdef       = typespec declarator compound-stmt
-// declarator    = "*"* ident type-suffix
-// func-params   = (param ("," param)*)? ")"
-// param         = typespec declarator
-// type-suffix   = "(" func-params
-//               = "[" num "]" type-suffix
-//               | ε
-// param         = typespec declarator
-// typespec      = "char" | "int"
-// compound-stmt = (declaration | stmt)* "}"
-// declaration   = typespec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
-// stmt          = "return"? expr ";"
-//               | "{" stmt* "}"
-//               | "if" "(" expr ")" stmt ("else" stmt)?
-//               | "for" "(" expr? ";" expr? ";" expr? ")" stmt
-//               | "while" "(" expr ")" stmt
-//               | "{" compound_stmt
-// expr-stmt     = expr
-// expr          = assign ("," expr)?
-// assign        = equality ("=" assign)?
-// equality      = relational ("==" relational | "!=" relational)*
-// relational    = add ("<" add | "<=" | ">" add | ">=" add)*
-// add           = mul ("+" mul | "-" mul)*
-// mul           = unary ("*" unary | "/" unary)*
-// unary         =  ("+" | "-" | "*" | "&")? unary
-//               | primary
-// postfix       = primary ("[" epxr "]")*
-// primary       = "(" "{" stmt stmt* "}" ")"
-//               | "(" expr ")"
-//               | "sizeof" unary
-//               | ident func-args?
-//               | str
-// func-args     = "(" (assign ("," assign)*)? ")"
+// program        = (funcdef | global-var)*
+// funcdef        = typespec declarator compound-stmt
+// declarator     = "*"* ident type-suffix
+// func-params    = (param ("," param)*)? ")"
+// param          = typespec declarator
+// type-suffix    = "(" func-params
+//                = "[" num "]" type-suffix
+//                | ε
+// typespec       = "char" | "int" | struct-decl
+// struct-decl    = "{" struct-members
+// struct-members = (typespec declarator ("," declarator)* ";")* "}"
+// compound-stmt  = (declaration | stmt)* "}"
+// declaration    = typespec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
+// stmt           = "return"? expr ";"
+//                | "{" stmt* "}"
+//                | "if" "(" expr ")" stmt ("else" stmt)?
+//                | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+//                | "while" "(" expr ")" stmt
+//                | "{" compound_stmt
+// expr-stmt      = expr
+// expr           = assign ("," expr)?
+// assign         = equality ("=" assign)?
+// equality       = relational ("==" relational | "!=" relational)*
+// relational     = add ("<" add | "<=" | ">" add | ">=" add)*
+// add            = mul ("+" mul | "-" mul)*
+// mul            = unary ("*" unary | "/" unary)*
+// unary          =  ("+" | "-" | "*" | "&")? unary
+//                | primary
+// postfix        = primary ("[" epxr "]")*
+// primary        = "(" "{" stmt stmt* "}" ")"
+//                | "(" expr ")"
+//                | "sizeof" unary
+//                | ident func-args?
+//                | str
+// func-args      = "(" (assign ("," assign)*)? ")"
 //
 //==================================================
 
@@ -374,7 +384,7 @@ static Node *stmt(Token **rest, Token *tok) {
 }
 
 static bool is_typename(Token *tok) {
-    return equal(tok, "char") || equal(tok, "int");
+    return equal(tok, "char") || equal(tok, "int") || equal(tok, "struct");
 }
 
 // compound-stmt = (declaration | stmt)* "}"
@@ -590,20 +600,91 @@ static Node *unary(Token **rest, Token *tok) {
     return postfix(rest, tok);
 }
 
-// postfix = primary ("[" epxr "]")*
+// struct-members = (typespec declarator ("," declarator)* ";")* "}"
+static Member *struct_members(Token **rest, Token *tok) {
+    Member head = {};
+    Member *cur = &head;
+
+    while (!equal(tok, "}")) {
+        Type *basety = typespec(&tok, tok);
+        int cnt = 0;
+
+        while (!consume(&tok, tok, ";")) {
+            if (cnt++)
+                tok = skip(tok, ",");
+
+            Member *mem = calloc(1, sizeof(Member));
+            mem->ty = declarator(&tok, tok, basety);
+            mem->name = mem->ty->name;
+            cur = cur->next = mem;
+        }
+    }
+
+    *rest = tok->next;
+    return head.next;
+}
+
+// struct-decl = "{" struct-members
+static Type *struct_decl(Token **rest, Token *tok) {
+    tok = skip(tok, "{");
+
+    // 構造体オブジェクトの作成
+    Type *ty = calloc(1, sizeof(Type));
+    ty->kind = TY_STRUCT;
+    ty->members = struct_members(rest, tok);
+
+    // 構造体内のオフセットをメンバに割り当てる
+    int offset = 0;
+    for (Member *mem = ty->members; mem; mem = mem->next) {
+        mem->offset = offset;
+        offset += mem->ty->size;
+    }
+    ty->size = offset;
+
+    return ty;
+}
+
+static Member *get_struct_member(Type *ty, Token *tok) {
+    for (Member *mem = ty->members; mem; mem = mem->next)
+        if (mem->name->len == tok->len &&
+            !strncmp(mem->name->loc, tok->loc, tok->len))
+            return mem;
+    error_tok(tok, "no such member");
+}
+
+static Node *struct_ref(Node *lhs, Token *tok) {
+    add_type(lhs);
+    if (lhs->ty->kind != TY_STRUCT)
+        error_tok(lhs->tok, "not a struct");
+
+    Node *node = new_unary(ND_MEMBER, lhs, tok);
+    node->member = get_struct_member(lhs->ty, tok);
+    return node;
+}
+
+// postfix = primary ("[" epxr "]" | "." ident)*
 static Node *postfix(Token **rest, Token *tok) {
     Node *node = primary(&tok, tok);
 
-    while (equal(tok, "[")) {
-        // x[y] == *(x+y)
-        Token *start = tok;
-        Node *idx = expr(&tok, tok->next);
-        tok = skip(tok, "]");
-        node = new_unary(ND_DEREF, new_add(node, idx, start), start);
-    }
+    while (true) {
+        if (equal(tok, "[")) {
+            // x[y] == *(x+y)
+            Token *start = tok;
+            Node *idx = expr(&tok, tok->next);
+            tok = skip(tok, "]");
+            node = new_unary(ND_DEREF, new_add(node, idx, start), start);
+            continue;
+        }
 
-    *rest = tok;
-    return node;
+        if (equal(tok, ".")) {
+            node = struct_ref(node, tok->next);
+            tok = tok->next->next;
+            continue;
+        }
+
+        *rest = tok;
+        return node;
+    }
 }
 
 // func-args = "(" (assign ("," assign)*)? ")"

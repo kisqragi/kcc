@@ -9,6 +9,7 @@
 #include <string.h>
 
 typedef struct Type Type;
+typedef struct Member Member;
 
 //
 // tokenizer.c
@@ -76,6 +77,7 @@ typedef enum {
     ND_ASSIGN,      // =
     ND_COMMA,       // ,
     ND_ADDR,        // &
+    ND_MEMBER,      // . (メンバ参照演算子)
     ND_DEREF,       // *
     ND_RETURN,      // "return"
     ND_IF,          // "if"
@@ -109,6 +111,9 @@ struct Node {
 
     // Block or statement expression
     Node *body;
+
+    // 構造体メンバのアクセス
+    Member *member;
 
     // 関数呼び出し
     char *funcname;
@@ -146,6 +151,7 @@ typedef enum {
     TY_PTR,
     TY_FUNC,
     TY_ARRAY,
+    TY_STRUCT,
 } TypeKind;
 
 struct Type {
@@ -162,10 +168,21 @@ struct Type {
     // Array
     int array_len;
 
+    // 構造体
+    Member *members;
+
     // Function type
     Type *return_ty;
     Type *params;
     Type *next;
+};
+
+// 構造体メンバ
+struct Member {
+    Member *next;
+    Type *ty;
+    Token *name;
+    int offset;
 };
 
 extern Type *ty_char;
