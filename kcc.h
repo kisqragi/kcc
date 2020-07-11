@@ -157,7 +157,8 @@ typedef enum {
 struct Type {
     TypeKind kind;
 
-    int size;
+    int size;   // sizeof value
+    int align;  // alignment
 
     // Pointer
     Type *base;
@@ -190,6 +191,7 @@ extern Type *ty_int;
 
 bool is_integer(Type *ty);
 Type *copy_type(Type *ty);
+int align_to(int n, int align);
 Type *pointer_to(Type *base);
 Type *array_of(Type *base, int len);
 Type *func_type(Type *return_ty);

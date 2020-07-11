@@ -636,10 +636,14 @@ static Type *struct_decl(Token **rest, Token *tok) {
     // 構造体内のオフセットをメンバに割り当てる
     int offset = 0;
     for (Member *mem = ty->members; mem; mem = mem->next) {
+        offset = align_to(offset, mem->ty->align);
         mem->offset = offset;
         offset += mem->ty->size;
+
+        if (ty->align < mem->ty->align)
+            ty->align = mem->ty->align;
     }
-    ty->size = offset;
+    ty->size = align_to(offset, ty->align);
 
     return ty;
 }
