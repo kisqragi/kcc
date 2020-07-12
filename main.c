@@ -11,6 +11,7 @@ int main(int argc, char **argv) {
         // オフセットの割り当て
         int offset = 32;    // callee-save registers用の32Byte
         for (Var *var = fn->locals; var; var = var->next) {
+            offset = align_to(offset, var->ty->align);
             offset += var->ty->size;
             var->offset = offset;
         }
