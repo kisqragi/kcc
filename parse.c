@@ -9,11 +9,21 @@ struct VarScope {
     Var *var;
 };
 
+// 構造体タグ
+typedef struct TagScope TagScope;
+struct TagScope {
+    TagScope *next;
+    char *name;
+    int depth;
+    Type *ty;
+};
+
 // ローカル変数のリスト
 static Var *locals;
 static Var *globals;
 
 static VarScope *var_scope;
+static TagScope *tag_scope;
 
 // scope_depthは"{"が来るたびに一つインクリメントされます。
 // また、"}"が来た場合デクリメントされます。
@@ -43,6 +53,9 @@ static void leave_scope(void) {
     scope_depth--;
     while (var_scope && var_scope->depth > scope_depth)
         var_scope = var_scope->next;
+
+    while (tag_scope && tag_scope->depth > scope_depth)
+        tag_scope = tag_scope->next;
 }
 
 // 名前でローカル変数を検索する
@@ -52,6 +65,14 @@ static Var *find_var(Token *tok) {
             return sc->var;
     return NULL;
 }
+
+static TagScope *find_tag(Token *tok) {
+    for (TagScope *sc = tag_scope; sc; sc = sc->next)
+        if (strlen(sc->name) == tok->len && !strncmp(tok->loc, sc->name, tok->len))
+            return sc;
+    return NULL;
+}
+
 
 static Node *new_node(NodeKind kind, Token *tok) {
     Node *node = calloc(1, sizeof(Node));
@@ -145,6 +166,15 @@ static long get_number(Token *tok) {
     return tok->val;
 }
 
+static void push_tag_scope(Token *tok, Type *ty) {
+    TagScope *sc = calloc(1, sizeof(TagScope));
+    sc->next = tag_scope;
+    sc->name = strndup(tok->loc, tok->len);
+    sc->depth = scope_depth;
+    sc->ty = ty;
+    tag_scope = sc;
+}
+
 // funcdef = typespec declarator compound-stmt
 static Function *funcdef(Token **rest, Token *tok) {
     locals = NULL;
@@ -170,7 +200,7 @@ static Function *funcdef(Token **rest, Token *tok) {
     return fn;
 }
 
-// typespec = "char" | "int" | struct-decl
+// typespec = "char" | "int" | "struct" struct-decl
 // typespec = type-specifier = 型指定子
 static Type *typespec(Token **rest, Token *tok) {
     if (equal(tok, "char")) {
@@ -282,7 +312,7 @@ static Node *declaration(Token **rest, Token *tok) {
 // type-suffix    = "(" func-params
 //                = "[" num "]" type-suffix
 //                | ε
-// typespec       = "char" | "int" | struct-decl
+// typespec       = "char" | "int" | "struct" struct-decl
 // struct-decl    = "{" struct-members
 // struct-members = (typespec declarator ("," declarator)* ";")* "}"
 // compound-stmt  = (declaration | stmt)* "}"
@@ -624,14 +654,27 @@ static Member *struct_members(Token **rest, Token *tok) {
     return head.next;
 }
 
-// struct-decl = "{" struct-members
+// struct-decl = ident? "{" struct-members
 static Type *struct_decl(Token **rest, Token *tok) {
-    tok = skip(tok, "{");
+    // 構造体タグを読み取る
+    Token *tag = NULL;
+    if (tok->kind == TK_IDENT) {
+        tag = tok;
+        tok = tok->next;
+    }
+
+    if (tag && !equal(tok, "{")) {
+        TagScope *sc = find_tag(tag);
+        if (!sc)
+            error_tok(tag, "unknown struct type");
+        *rest = tok;
+        return sc->ty;
+    }
 
     // 構造体オブジェクトの作成
     Type *ty = calloc(1, sizeof(Type));
     ty->kind = TY_STRUCT;
-    ty->members = struct_members(rest, tok);
+    ty->members = struct_members(rest, tok->next);
 
     // 構造体内のオフセットをメンバに割り当てる
     int offset = 0;
@@ -644,6 +687,9 @@ static Type *struct_decl(Token **rest, Token *tok) {
             ty->align = mem->ty->align;
     }
     ty->size = align_to(offset, ty->align);
+
+    if (tag)
+        push_tag_scope(tag, ty);
 
     return ty;
 }
