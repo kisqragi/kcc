@@ -332,7 +332,7 @@ static Node *declaration(Token **rest, Token *tok) {
 // mul            = unary ("*" unary | "/" unary)*
 // unary          =  ("+" | "-" | "*" | "&")? unary
 //                | primary
-// postfix        = primary ("[" epxr "]")*
+// postfix        = primary ("[" epxr "]" | "." ident | "->" ident)*
 // primary        = "(" "{" stmt stmt* "}" ")"
 //                | "(" expr ")"
 //                | "sizeof" unary
@@ -712,7 +712,7 @@ static Node *struct_ref(Node *lhs, Token *tok) {
     return node;
 }
 
-// postfix = primary ("[" epxr "]" | "." ident)*
+// postfix = primary ("[" epxr "]" | "." ident | "->" ident)*
 static Node *postfix(Token **rest, Token *tok) {
     Node *node = primary(&tok, tok);
 
@@ -727,6 +727,14 @@ static Node *postfix(Token **rest, Token *tok) {
         }
 
         if (equal(tok, ".")) {
+            node = struct_ref(node, tok->next);
+            tok = tok->next->next;
+            continue;
+        }
+
+        if (equal(tok, "->")) {
+            // x->yは(*x).yの省略形です
+            node = new_unary(ND_DEREF, node, tok);
             node = struct_ref(node, tok->next);
             tok = tok->next->next;
             continue;
