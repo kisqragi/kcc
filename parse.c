@@ -9,7 +9,7 @@ struct VarScope {
     Var *var;
 };
 
-// 構造体タグ
+// 構造体 or 共用体タグ
 typedef struct TagScope TagScope;
 struct TagScope {
     TagScope *next;
@@ -41,6 +41,7 @@ static Node *relational(Token **rest, Token *tok);
 static Node *add(Token **rest, Token *tok);
 static Node *mul(Token **rest, Token *tok);
 static Type *struct_decl(Token **rest, Token *tok);
+static Type *union_decl(Token **rest, Token *tok);
 static Node *postfix(Token **rest, Token *tok);
 static Node *unary(Token **rest, Token *tok);
 static Node *primary(Token **rest, Token *tok);
@@ -200,7 +201,7 @@ static Function *funcdef(Token **rest, Token *tok) {
     return fn;
 }
 
-// typespec = "char" | "int" | "struct" struct-decl
+// typespec = "char" | "int" | "struct" struct-decl | "union" union-struct
 // typespec = type-specifier = 型指定子
 static Type *typespec(Token **rest, Token *tok) {
     if (equal(tok, "char")) {
@@ -212,6 +213,9 @@ static Type *typespec(Token **rest, Token *tok) {
         *rest = skip(tok, "int");
         return ty_int;
     }
+
+    if (equal(tok, "union"))
+        return union_decl(rest, tok->next);
 
     if (equal(tok, "struct"))
         return struct_decl(rest, tok->next);
@@ -304,41 +308,43 @@ static Node *declaration(Token **rest, Token *tok) {
 //==================================================
 // [生成規則]
 //
-// program        = (funcdef | global-var)*
-// funcdef        = typespec declarator compound-stmt
-// declarator     = "*"* ident type-suffix
-// func-params    = (param ("," param)*)? ")"
-// param          = typespec declarator
-// type-suffix    = "(" func-params
-//                = "[" num "]" type-suffix
-//                | ε
-// typespec       = "char" | "int" | "struct" struct-decl
-// struct-decl    = "{" struct-members
-// struct-members = (typespec declarator ("," declarator)* ";")* "}"
-// compound-stmt  = (declaration | stmt)* "}"
-// declaration    = typespec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
-// stmt           = "return"? expr ";"
-//                | "{" stmt* "}"
-//                | "if" "(" expr ")" stmt ("else" stmt)?
-//                | "for" "(" expr? ";" expr? ";" expr? ")" stmt
-//                | "while" "(" expr ")" stmt
-//                | "{" compound_stmt
-// expr-stmt      = expr
-// expr           = assign ("," expr)?
-// assign         = equality ("=" assign)?
-// equality       = relational ("==" relational | "!=" relational)*
-// relational     = add ("<" add | "<=" | ">" add | ">=" add)*
-// add            = mul ("+" mul | "-" mul)*
-// mul            = unary ("*" unary | "/" unary)*
-// unary          =  ("+" | "-" | "*" | "&")? unary
-//                | primary
-// postfix        = primary ("[" epxr "]" | "." ident | "->" ident)*
-// primary        = "(" "{" stmt stmt* "}" ")"
-//                | "(" expr ")"
-//                | "sizeof" unary
-//                | ident func-args?
-//                | str
-// func-args      = "(" (assign ("," assign)*)? ")"
+// program           = (funcdef | global-var)*
+// funcdef           = typespec declarator compound-stmt
+// declarator        = "*"* ident type-suffix
+// func-params       = (param ("," param)*)? ")"
+// param             = typespec declarator
+// type-suffix       = "(" func-params
+//                   = "[" num "]" type-suffix
+//                   | ε
+// typespec          = "char" | "int" | "struct" struct-decl | "union" union-decl
+// struct-union-decl = ident? ("{" struct-members)?
+// struct-decl       = struct-union-decl
+// union-decl        = struct-union-decl
+// struct-members    = (typespec declarator ("," declarator)* ";")* "}"
+// compound-stmt     = (declaration | stmt)* "}"
+// declaration       = typespec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
+// stmt              = "return"? expr ";"
+//                   | "{" stmt* "}"
+//                   | "if" "(" expr ")" stmt ("else" stmt)?
+//                   | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+//                   | "while" "(" expr ")" stmt
+//                   | "{" compound_stmt
+// expr-stmt         = expr
+// expr              = assign ("," expr)?
+// assign            = equality ("=" assign)?
+// equality          = relational ("==" relational | "!=" relational)*
+// relational        = add ("<" add | "<=" | ">" add | ">=" add)*
+// add               = mul ("+" mul | "-" mul)*
+// mul               = unary ("*" unary | "/" unary)*
+// unary             =  ("+" | "-" | "*" | "&")? unary
+//                   | primary
+// postfix           = primary ("[" epxr "]" | "." ident | "->" ident)*
+// primary           = "(" "{" stmt stmt* "}" ")"
+//                   | "(" expr ")"
+//                   | "sizeof" unary
+//                   | ident func-args?
+//                   | str
+// func-args         = "(" (assign ("," assign)*)? ")"
 //
 //==================================================
 
@@ -414,7 +420,8 @@ static Node *stmt(Token **rest, Token *tok) {
 }
 
 static bool is_typename(Token *tok) {
-    return equal(tok, "char") || equal(tok, "int") || equal(tok, "struct");
+    return equal(tok, "char") || equal(tok, "int") || equal(tok, "struct") ||
+           equal(tok, "union");
 }
 
 // compound-stmt = (declaration | stmt)* "}"
@@ -654,8 +661,8 @@ static Member *struct_members(Token **rest, Token *tok) {
     return head.next;
 }
 
-// struct-decl = ident? "{" struct-members
-static Type *struct_decl(Token **rest, Token *tok) {
+// struct-union-decl = ident? ("{" struct-members)?
+static Type *struct_union_decl(Token **rest, Token *tok) {
     // 構造体タグを読み取る
     Token *tag = NULL;
     if (tok->kind == TK_IDENT) {
@@ -676,6 +683,16 @@ static Type *struct_decl(Token **rest, Token *tok) {
     ty->kind = TY_STRUCT;
     ty->members = struct_members(rest, tok->next);
 
+    if (tag)
+        push_tag_scope(tag, ty);
+
+    return ty;
+}
+
+// struct-decl = struct-union-decl
+static Type *struct_decl(Token **rest, Token *tok) {
+    Type *ty = struct_union_decl(rest, tok);
+
     // 構造体内のオフセットをメンバに割り当てる
     int offset = 0;
     for (Member *mem = ty->members; mem; mem = mem->next) {
@@ -687,10 +704,20 @@ static Type *struct_decl(Token **rest, Token *tok) {
             ty->align = mem->ty->align;
     }
     ty->size = align_to(offset, ty->align);
+    return ty;
+}
 
-    if (tag)
-        push_tag_scope(tag, ty);
+// union-decl = struct-union-decl
+static Type *union_decl(Token **rest, Token *tok) {
+    Type *ty = struct_union_decl(rest, tok);
 
+    for (Member *mem = ty->members; mem; mem = mem->next) {
+        if (ty->align < mem->ty->align)
+            ty->align = mem->ty->align;
+        if (ty->size < mem->ty->size)
+            ty->size = mem->ty->size;
+    }
+    ty->size = align_to(ty->size, ty->align);
     return ty;
 }
 
