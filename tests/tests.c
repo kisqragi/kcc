@@ -258,6 +258,8 @@ int main() {
     assert(0, ({ union { int a; char b[4]; } x; x.a = 515; x.b[2]; }), "({ union { int a; char b[4]; } x; x.a = 515; x.b[2]; })");
     assert(0, ({ union { int a; char b[4]; } x; x.a = 515; x.b[3]; }), "({ union { int a; char b[4]; } x; x.a = 515; x.b[3]; })");
 
+    assert(3, ({ struct t {int a[7];} x,y; x.a[0]=3; y = x; y.a[0]; }), "({ struct t {int a[7];} x,y; x.a[0]=3; y = x; y.a[0]; })");
+    assert(3, ({ struct t {int a[7];} x,y; x.a[6]=3; y = x; y.a[6]; }), "({ struct t {int a[7];} x,y; x.a[6]=3; y = x; y.a[6]; })");
 
     printf("OK\n");
     return 0;
