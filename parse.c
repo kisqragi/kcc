@@ -201,7 +201,7 @@ static Function *funcdef(Token **rest, Token *tok) {
     return fn;
 }
 
-// typespec = "char" | "int" | "struct" struct-decl | "union" union-struct
+// typespec = "char" | "short" | "int" | "long" | "struct" struct-decl | "union" union-struct
 // typespec = type-specifier = 型指定子
 static Type *typespec(Token **rest, Token *tok) {
     if (equal(tok, "char")) {
@@ -209,9 +209,19 @@ static Type *typespec(Token **rest, Token *tok) {
         return ty_char;
     }
 
+    if (equal(tok, "short")) {
+        *rest = tok->next;
+        return ty_short;
+    }
+
     if (equal(tok, "int")) {
-        *rest = skip(tok, "int");
+        *rest = tok->next;
         return ty_int;
+    }
+
+    if (equal(tok, "long")) {
+        *rest = tok->next;
+        return ty_long;
     }
 
     if (equal(tok, "union"))
@@ -316,7 +326,8 @@ static Node *declaration(Token **rest, Token *tok) {
 // type-suffix       = "(" func-params
 //                   = "[" num "]" type-suffix
 //                   | ε
-// typespec          = "char" | "int" | "struct" struct-decl | "union" union-decl
+// typespec          = "char" | "short" | "int" | "long"
+//                   | "struct" struct-decl | "union" union-struct
 // struct-union-decl = ident? ("{" struct-members)?
 // struct-decl       = struct-union-decl
 // union-decl        = struct-union-decl
@@ -420,8 +431,9 @@ static Node *stmt(Token **rest, Token *tok) {
 }
 
 static bool is_typename(Token *tok) {
-    return equal(tok, "char") || equal(tok, "int") || equal(tok, "struct") ||
-           equal(tok, "union");
+    return equal(tok, "char") || equal(tok, "short") ||
+           equal(tok, "int") || equal(tok, "long") ||
+           equal(tok, "struct") || equal(tok, "union");
 }
 
 // compound-stmt = (declaration | stmt)* "}"

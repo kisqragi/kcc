@@ -21,6 +21,14 @@ int sub_char(char a, char b, char c) {
     return a-b-c;
 }
 
+int sub_short(short a, short b, short c) {
+  return a - b - c;
+}
+
+int sub_long(long a, long b, long c) {
+  return a - b - c;
+}
+
 int assert(int expected, int actual, char *code) {
     if (expected == actual) {
         printf("%s => %d\n", code, actual);
@@ -260,6 +268,16 @@ int main() {
 
     assert(3, ({ struct t {int a[7];} x,y; x.a[0]=3; y = x; y.a[0]; }), "({ struct t {int a[7];} x,y; x.a[0]=3; y = x; y.a[0]; })");
     assert(3, ({ struct t {int a[7];} x,y; x.a[6]=3; y = x; y.a[6]; }), "({ struct t {int a[7];} x,y; x.a[6]=3; y = x; y.a[6]; })");
+
+
+    assert(2, ({ short x; sizeof(x); }), "short x; sizeof(x);");
+    assert(4, ({ struct {char a; short b;} x; sizeof(x); }), "struct {char a; short b;} x; sizeof(x);");
+
+    assert(8, ({ long x; sizeof(x); }), "long x; sizeof(x);");
+    assert(16, ({ struct {char a; long b;} x; sizeof(x); }), "struct {char a; long b} x; sizeof(x);");
+
+    assert(1, sub_short(7, 3, 3), "sub_short(7, 3, 3)");
+    assert(1, sub_long(7, 3, 3), "sub_long(7, 3, 3)");
 
     printf("OK\n");
     return 0;
