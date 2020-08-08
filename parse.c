@@ -29,6 +29,7 @@ static TagScope *tag_scope;
 // また、"}"が来た場合デクリメントされます。
 static int scope_depth;
 
+static bool is_typename(Token *tok);
 static Type *declarator(Token **rest, Token *tok, Type *ty);
 static Type *typespec(Token **rest, Token *tok);
 static Node *compound_stmt(Token **rest, Token *tok);
@@ -201,43 +202,74 @@ static Function *funcdef(Token **rest, Token *tok) {
     return fn;
 }
 
-// typespec = "void" | "char" | "short" | "int" | "long" | "struct" struct-decl
-//          | "union" union-struct
+// typespec = typename typename*
+// typename = "void" | "char" | "short" | "int" | "long"
+//          | "struct" struct-decl | "union" union-struct
 // typespec = type-specifier = 型指定子
 static Type *typespec(Token **rest, Token *tok) {
+    enum {
+        VOID  = 1 << 0,
+        CHAR  = 1 << 2,
+        SHORT = 1 << 4,
+        INT   = 1 << 6,
+        LONG  = 1 << 8,
+        OTHER = 1 << 10,
 
-    if (equal(tok, "void")) {
-        *rest = tok->next;
-        return ty_void;
+    };
+
+    Type *ty = ty_int;
+    int counter = 0;
+
+    while (is_typename(tok)) {
+        if (equal(tok, "struct") || equal(tok, "union")) {
+            if (equal(tok, "struct"))
+                ty = struct_decl(&tok, tok->next);
+            else
+                ty = union_decl(&tok, tok->next);
+            counter += OTHER;
+            continue;
+        }
+
+        if (equal(tok, "void"))
+            counter += VOID;
+        else if (equal(tok, "char"))
+            counter += CHAR;
+        else if (equal(tok, "short"))
+            counter += SHORT;
+        else if (equal(tok, "int"))
+            counter += INT;
+        else if (equal(tok, "long"))
+            counter += LONG;
+        else
+            error_tok(tok, "internal error");
+
+        switch (counter) {
+            case VOID:
+                ty = ty_void;
+                break;
+            case CHAR:
+                ty = ty_char;
+                break;
+            case SHORT:
+            case SHORT + INT:
+                ty = ty_short;
+                break;
+            case INT:
+                ty = ty_int;
+                break;
+            case LONG:
+            case LONG + INT:
+                ty = ty_long;
+                break;
+            default:
+                error_tok(tok, "invalid type");
+        }
+
+        tok = tok->next;
     }
 
-    if (equal(tok, "char")) {
-        *rest = tok->next;
-        return ty_char;
-    }
-
-    if (equal(tok, "short")) {
-        *rest = tok->next;
-        return ty_short;
-    }
-
-    if (equal(tok, "int")) {
-        *rest = tok->next;
-        return ty_int;
-    }
-
-    if (equal(tok, "long")) {
-        *rest = tok->next;
-        return ty_long;
-    }
-
-    if (equal(tok, "union"))
-        return union_decl(rest, tok->next);
-
-    if (equal(tok, "struct"))
-        return struct_decl(rest, tok->next);
-
-    error_tok(tok, "typename expected");
+    *rest = tok;
+    return ty;
 }
 
 // func-params = (param ("," param)*)? ")"
@@ -343,7 +375,8 @@ static Node *declaration(Token **rest, Token *tok) {
 // type-suffix       = "(" func-params
 //                   = "[" num "]" type-suffix
 //                   | ε
-// typespec          = "void" | "char" | "short" | "int" | "long"
+// typespec          = typename typename*
+// typename          = "void" | "char" | "short" | "int" | "long"
 //                   | "struct" struct-decl | "union" union-struct
 // struct-union-decl = ident? ("{" struct-members)?
 // struct-decl       = struct-union-decl
