@@ -201,9 +201,16 @@ static Function *funcdef(Token **rest, Token *tok) {
     return fn;
 }
 
-// typespec = "char" | "short" | "int" | "long" | "struct" struct-decl | "union" union-struct
+// typespec = "void" | "char" | "short" | "int" | "long" | "struct" struct-decl
+//          | "union" union-struct
 // typespec = type-specifier = 型指定子
 static Type *typespec(Token **rest, Token *tok) {
+
+    if (equal(tok, "void")) {
+        *rest = tok->next;
+        return ty_void;
+    }
+
     if (equal(tok, "char")) {
         *rest = tok->next;
         return ty_char;
@@ -305,6 +312,8 @@ static Node *declaration(Token **rest, Token *tok) {
             tok = skip(tok, ",");
 
         Type *ty = declarator(&tok, tok, basety);
+        if (ty->kind == TY_VOID)
+            error_tok(tok, "variable declared void");
         Var *var = new_lvar(get_ident(ty->name), ty);
 
         if (!equal(tok, "="))
@@ -334,7 +343,7 @@ static Node *declaration(Token **rest, Token *tok) {
 // type-suffix       = "(" func-params
 //                   = "[" num "]" type-suffix
 //                   | ε
-// typespec          = "char" | "short" | "int" | "long"
+// typespec          = "void" | "char" | "short" | "int" | "long"
 //                   | "struct" struct-decl | "union" union-struct
 // struct-union-decl = ident? ("{" struct-members)?
 // struct-decl       = struct-union-decl
@@ -439,9 +448,14 @@ static Node *stmt(Token **rest, Token *tok) {
 }
 
 static bool is_typename(Token *tok) {
-    return equal(tok, "char") || equal(tok, "short") ||
-           equal(tok, "int") || equal(tok, "long") ||
-           equal(tok, "struct") || equal(tok, "union");
+    static char *kw[] = {
+        "void", "char", "short", "int", "long", "struct", "union",
+    };
+
+    for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)
+        if (equal(tok, kw[i]))
+            return true;
+    return false;
 }
 
 // compound-stmt = (declaration | stmt)* "}"
