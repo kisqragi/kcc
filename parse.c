@@ -364,6 +364,31 @@ static Type *declarator(Token **rest, Token *tok, Type *ty) {
     return ty;
 }
 
+// abstract-declarator = "*"* ("(" abstract-declarator ")")? type-suffix
+static Type *abstract_declarator(Token **rest, Token *tok, Type *ty) {
+    while (equal(tok, "*")) {
+        ty = pointer_to(ty);
+        tok = tok->next;
+    }
+
+    if (equal(tok, "(")) {
+        Type *placeholder = calloc(1, sizeof(Type));
+        Type *new_ty = abstract_declarator(&tok, tok->next, placeholder);
+        tok = skip(tok, ")");
+        *placeholder = *type_suffix(rest, tok, ty);
+        return new_ty;
+    }
+
+    return type_suffix(rest, tok, ty);
+}
+ 
+// type-name = typespec abstract-declarator
+static Type *typename(Token **rest, Token *tok) {
+    Type *ty = typespec(&tok, tok, NULL);
+    return abstract_declarator(rest, tok, ty);
+}
+
+
 // declaration = typespec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
 static Node *declaration(Token **rest, Token *tok) {
     VarAttr attr = {};
@@ -442,6 +467,7 @@ static Node *declaration(Token **rest, Token *tok) {
 // postfix           = primary ("[" epxr "]" | "." ident | "->" ident)*
 // primary           = "(" "{" stmt stmt* "}" ")"
 //                   | "(" expr ")"
+//                   | "sizeof" "(" type-name ")"
 //                   | "sizeof" unary
 //                   | ident func-args?
 //                   | str
@@ -922,6 +948,7 @@ static Node *funcall(Token **rest, Token *tok) {
 
 // primary = "(" "{" stmt stmt* "}" ")"
 //         | "(" expr ")"
+//         | "sizeof" "(" type-name ")"
 //         | "sizeof" unary
 //         | ident func-args?
 //         | str
@@ -949,6 +976,11 @@ static Node *primary(Token **rest, Token *tok) {
     }
 
     if (equal(tok, "sizeof")) {
+        if (equal(tok->next, "(") && is_typename(tok->next->next)) {
+            Type *ty = typename(&tok, tok->next->next);
+            *rest = skip(tok, ")");
+            return new_num(ty->size, tok);
+        }
         Node *node = unary(rest, tok->next);
         add_type(node);
         return new_num(node->ty->size, tok);
