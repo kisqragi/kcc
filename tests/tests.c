@@ -1,3 +1,6 @@
+int printf();
+int exit();
+
 int g1, g2[4];
 
 int ret3() { return 3; }

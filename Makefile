@@ -9,7 +9,7 @@ $(OBJS): kcc.h
 
 test: kcc
 	./kcc tests/tests.c > tmp.s
-	gcc -static -o tmp tmp.s
+	gcc -static -o tmp tmp.s tests/extern.c
 	./tmp
 
 clean:
