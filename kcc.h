@@ -89,6 +89,7 @@ typedef enum {
     ND_NULL_EXPR,   // 何もしない式
     ND_VAR,         // Variable
     ND_NUM,         // Integer
+    ND_CAST,        // type cast
 } NodeKind;
 
 // ASTノード型

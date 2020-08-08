@@ -79,6 +79,20 @@ static void store(Type *ty) {
     top--;
 }
 
+static void cast(Type *ty) {
+    if (ty->kind == TY_VOID)
+        return;
+
+    char *r = reg(top - 1);
+
+    if (ty->size == 1)
+        printf("    movsx %s, %sb\n", r, r);
+    else if (ty->size == 2)
+        printf("    movsx %s, %sw\n", r, r);
+    else if (ty->size == 4)
+        printf("    movsx %s, %sd\n", r, r);
+}
+
 static void gen_expr(Node *node) {
     printf(".loc 1 %d\n", node->tok->line_no);
     switch (node->kind) {
@@ -117,6 +131,10 @@ static void gen_expr(Node *node) {
             gen_expr(node->lhs);
             top--;
             gen_expr(node->rhs);
+            return;
+        case ND_CAST:
+            gen_expr(node->lhs);
+            cast(node->ty);
             return;
         case ND_FUNCALL: {
             // caller-saved registers
