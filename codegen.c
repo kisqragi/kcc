@@ -79,17 +79,19 @@ static void store(Type *ty) {
     top--;
 }
 
-static void cast(Type *ty) {
-    if (ty->kind == TY_VOID)
+static void cast(Type *from, Type *to) {
+    if (to->kind == TY_VOID)
         return;
 
     char *r = reg(top - 1);
 
-    if (ty->size == 1)
+    if (to->size == 1)
         printf("    movsx %s, %sb\n", r, r);
-    else if (ty->size == 2)
+    else if (to->size == 2)
         printf("    movsx %s, %sw\n", r, r);
-    else if (ty->size == 4)
+    else if (to->size == 4)
+        printf("    movsx %s, %sd\n", r, r);
+    else if (is_integer(from) && from->size < 8)
         printf("    movsx %s, %sd\n", r, r);
 }
 
@@ -134,7 +136,7 @@ static void gen_expr(Node *node) {
             return;
         case ND_CAST:
             gen_expr(node->lhs);
-            cast(node->ty);
+            cast(node->lhs->ty, node->ty);
             return;
         case ND_FUNCALL: {
             // caller-saved registers
