@@ -19,11 +19,15 @@ static Type *new_type(TypeKind kind, int size, int align) {
 bool is_integer(Type *ty) {
     TypeKind k = ty->kind;
     return k == TY_BOOL || k == TY_CHAR  || k == TY_INT ||
-           k == TY_SHORT || k == TY_LONG;
+           k == TY_SHORT || k == TY_LONG || k == TY_ENUM;
 }
 
 static bool is_scalar(Type *ty) {
     return is_integer(ty) || ty->base;
+}
+
+Type *enum_type(void) {
+    return new_type(TY_ENUM, 4, 4);
 }
 
 Type *copy_type(Type *ty) {

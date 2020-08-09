@@ -108,7 +108,8 @@ static bool startswith(char *p, char *q) {
 static bool is_keyword(Token *tok) {
     static char *kw[] = {
         "return", "if", "else", "for", "while", "int", "sizeof", "char",
-        "struct", "union", "short", "long", "void", "typedef",
+        "struct", "union", "short", "long", "void", "typedef", "_Bool",
+        "enum",
     };
 
     for (int i = 0; i < sizeof(kw) / sizeof(kw); i++)
