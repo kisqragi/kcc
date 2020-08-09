@@ -38,6 +38,10 @@ int sub_long(long a, long b, long c) {
 int *g1_ptr() { return &g1; }
 char int_to_char(int x) { return x; }
 
+int div_long(long a, long b) {
+    return a / b;
+}
+
 int assert(int expected, int actual, char *code) {
     if (expected == actual) {
         printf("%s => %d\n", code, actual);
@@ -382,6 +386,8 @@ int main() {
 
     assert(3, *g1_ptr(), "*g1_ptr()");
     assert(5, int_to_char(261), "int_to_char(261)");
+
+    assert(-5, div_long(-10, 2), "div_long(-10, 2)");
 
     printf("OK\n");
     return 0;
