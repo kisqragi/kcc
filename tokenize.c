@@ -205,6 +205,26 @@ static char read_escaped_char(char **new_pos, char *p) {
     }
 }
 
+static Token *read_char_literal(Token *cur, char *start) {
+    char *p = start + 1;
+    if (*p == '\0')
+        error_at(start, "unclose char literal");
+
+    char c;
+    if (*p == '\\')
+        c = read_escaped_char(&p, p + 1);
+    else
+        c = *p++;
+
+    if (*p != '\'')
+        error_at(p, "char literal too long");
+    p++;
+
+    Token *tok = new_token(TK_NUM, cur, start, p - start);
+    tok->val = c;
+    return tok;
+}
+
 static Token *read_string_literal(Token *cur, char *start) {
     char *p = start + 1;    // eat '"'
     char *end = p;
@@ -280,6 +300,12 @@ static Token *tokenize(char *filename, char *p) {
         // 文字列リテラル
         if (*p == '"') {
             cur = read_string_literal(cur, p);
+            p += cur->len;
+            continue;
+        }
+
+        if (*p == '\'') {
+            cur = read_char_literal(cur, p);
             p += cur->len;
             continue;
         }
