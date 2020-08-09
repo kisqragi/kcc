@@ -24,6 +24,7 @@ struct TagScope {
 // typedefやexternなどの変数属性
 typedef struct {
     bool is_typedef;
+    bool is_static;
 } VarAttr;
 
 // ローカル変数のリスト
@@ -217,11 +218,13 @@ static void push_tag_scope(Token *tok, Type *ty) {
 static Function *funcdef(Token **rest, Token *tok) {
     locals = NULL;
 
-    Type *ty = typespec(&tok, tok, NULL);
+    VarAttr attr = {};
+    Type *ty = typespec(&tok, tok, &attr);
     ty = declarator(&tok, tok, ty);
 
     Function *fn = calloc(1, sizeof(Function));
     fn->name = get_ident(ty->name);
+    fn->is_static = attr.is_static;
 
     enter_scope();
 
@@ -258,10 +261,18 @@ static Type *typespec(Token **rest, Token *tok, VarAttr *attr) {
     int counter = 0;
 
     while (is_typename(tok)) {
-        if (equal(tok, "typedef")) {
+        if (equal(tok, "typedef") || equal(tok, "static")) {
             if (!attr)
                 error_tok(tok, "storage class specifier is not allowed in this context");
-            attr->is_typedef = true;
+
+            if (equal(tok, "typedef"))
+                attr->is_typedef = true;
+            else
+                attr->is_static = true;
+
+            if (attr->is_typedef + attr->is_static > 1)
+                error_tok(tok, "typedef and static may not be used together"); 
+
             tok = tok->next;
             continue;
         }
@@ -635,7 +646,7 @@ static Node *stmt(Token **rest, Token *tok) {
 static bool is_typename(Token *tok) {
     static char *kw[] = {
         "void", "_Bool", "char", "short", "int", "long", "struct",
-        "union", "typedef", "enum",
+        "union", "typedef", "enum", "static"
     };
 
     for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)
