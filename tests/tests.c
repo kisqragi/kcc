@@ -35,6 +35,9 @@ int sub_long(long a, long b, long c) {
   return a - b - c;
 }
 
+int *g1_ptr() { return &g1; }
+char int_to_char(int x) { return x; }
+
 int assert(int expected, int actual, char *code) {
     if (expected == actual) {
         printf("%s => %d\n", code, actual);
@@ -377,8 +380,8 @@ int main() {
     assert(0, ({ char x[3]; x[0]=0; x[1]=1; x[2]=2; char *y=x+1; y[-1]; }), "({ char x[3]; x[0]=0; x[1]=1; x[2]=2; char *y=x+1; y[-1]; })");
     assert(5, ({ struct t {char a;} x, y; x.a=5; y=x; y.a; }), "({ struct t {char a;} x, y; x.a=5; y=x; y.a; })");
 
-
-
+    assert(3, *g1_ptr(), "*g1_ptr()");
+    assert(5, int_to_char(261), "int_to_char(261)");
 
     printf("OK\n");
     return 0;
