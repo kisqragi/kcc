@@ -324,7 +324,9 @@ static Token *tokenize(char *filename, char *p) {
         // ２文字の区切り文字
         if (startswith(p, "==") || startswith(p, "!=") ||
             startswith(p, ">=") || startswith(p, "<=") ||
-            startswith(p, "->")) {
+            startswith(p, "->") || startswith(p, "+=") ||
+            startswith(p, "-=") || startswith(p, "*=") ||
+            startswith(p, "/=")) {
             cur = new_token(TK_RESERVED, cur, p, 2);
             p += 2;
             continue;
