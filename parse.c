@@ -604,10 +604,14 @@ static Node *stmt(Token **rest, Token *tok) {
         node = new_node(ND_FOR, tok);
         tok = skip(tok->next, "(");
 
-        // initとincは値を返さない(処理するだけ)
-        if (!equal(tok, ";"))
+        enter_scope();
+
+        if (is_typename(tok)) {
+            node->init = declaration(&tok, tok);
+        } else {
             node->init = expr_stmt(&tok, tok);
-        tok = skip(tok, ";");
+            tok = skip(tok, ";");
+        }
 
         // condは比較結果の値を返す
         if (!equal(tok, ";"))
@@ -620,6 +624,7 @@ static Node *stmt(Token **rest, Token *tok) {
         tok = skip(tok, ")");
 
         node->then = stmt(rest, tok);
+        leave_scope();
         return node;
     }
 
