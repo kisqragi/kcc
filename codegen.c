@@ -102,6 +102,20 @@ static void cast(Type *from, Type *to) {
         printf("    movsx %s, %sd\n", r, r);
 }
 
+static void divmod(Node *node, char *rs, char *rd, char *r64, char *r32) {
+    if (node->ty->size == 8) {
+        printf("    mov rax, %s\n", rd);
+        printf("    cqo\n");
+        printf("    idiv %s\n", rs);
+        printf("    mov %s, %s\n", rd, r64);
+    } else {
+        printf("    mov eax, %sd\n", rd);
+        printf("    cdq\n");
+        printf("    idiv %sd\n", rs);
+        printf("    mov %sd, %s\n", rd, r32);
+    }
+}
+
 static void gen_expr(Node *node) {
     printf(".loc 1 %d\n", node->tok->line_no);
     switch (node->kind) {
@@ -203,11 +217,10 @@ static void gen_expr(Node *node) {
             printf("    imul %s, %s\n", rd, rs);
             return;
         case ND_DIV:
-            printf("    mov rax, %s\n", rd);
-            // RAX -> RDX:RAX (128bitに拡張)
-            printf("    cqo\n");
-            printf("    idiv %s\n", rs);
-            printf("    mov %s, rax\n", rd);
+            divmod(node, rs, rd, "rax", "eax");
+            return;
+        case ND_MOD:
+            divmod(node, rs, rd, "rdx", "edx");
             return;
         case ND_EQ:
             printf("    cmp %s, %s\n", rd, rs);
