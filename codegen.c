@@ -145,6 +145,12 @@ static void gen_expr(Node *node) {
             gen_expr(node->lhs);
             cast(node->lhs->ty, node->ty);
             return;
+        case ND_NOT:
+            gen_expr(node->lhs);
+            printf("    cmp %s, 0\n", reg(top-1));
+            printf("    sete %sb\n", reg(top-1));
+            printf("    movzx %s, %sb\n", reg(top-1), reg(top-1));
+            return;
         case ND_FUNCALL: {
             // caller-saved registers
             printf("    push r10\n");
