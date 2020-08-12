@@ -84,6 +84,9 @@ typedef enum {
     ND_DEREF,       // *
     ND_NOT,         // !
     ND_BITNOT,      // ~
+    ND_BITAND,      // &
+    ND_BITOR,       // | 
+    ND_BITXOR,      // ^
     ND_RETURN,      // "return"
     ND_IF,          // "if"
     ND_FOR,         // "for"
