@@ -559,7 +559,7 @@ static Node *declaration(Token **rest, Token *tok) {
 // add               = mul ("+" mul | "-" mul)*
 // mul               = cast ("*" cast | "/" cast)*
 // cast              = "(" type-name ")" cast | unary
-// unary             = ("+" | "-" | "*" | "&" | "!")? cast
+// unary             = ("+" | "-" | "*" | "&" | "!" | "~")? cast
 //                   | ("++" | "--") unary
 //                   | postfix
 // postfix           = primary ("[" epxr "]" | "." ident | "->" ident | "++" | "--")*
@@ -914,7 +914,7 @@ static Node *cast(Token **rest, Token *tok) {
 
 }
 
-// unary = ("+" | "-" | "*" | "&" | "!")? cast
+// unary = ("+" | "-" | "*" | "&" | "!" | "~")? cast
 //       | ("++" | "--") unary
 //       | postfix
 static Node *unary(Token **rest, Token *tok) {
@@ -932,6 +932,9 @@ static Node *unary(Token **rest, Token *tok) {
 
     if (equal(tok, "!"))
         return new_unary(ND_NOT, cast(rest, tok->next), tok);
+
+    if (equal(tok, "~"))
+        return new_unary(ND_BITNOT, cast(rest, tok->next), tok);
 
     // ++i as i+=1
     if (equal(tok, "++"))

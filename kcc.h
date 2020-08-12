@@ -82,6 +82,7 @@ typedef enum {
     ND_MEMBER,      // . (メンバ参照演算子)
     ND_DEREF,       // *
     ND_NOT,         // !
+    ND_BITNOT,      // ~
     ND_RETURN,      // "return"
     ND_IF,          // "if"
     ND_FOR,         // "for"
