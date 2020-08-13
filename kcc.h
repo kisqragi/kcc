@@ -88,6 +88,8 @@ typedef enum {
     ND_BITOR,       // | 
     ND_BITXOR,      // ^
     ND_RETURN,      // "return"
+    ND_LOGAND,      // && 'Logical AND'
+    ND_LOGOR ,      // ||
     ND_IF,          // "if"
     ND_FOR,         // "for"
     ND_BLOCK,       // { ... }
