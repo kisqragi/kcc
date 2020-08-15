@@ -1,6 +1,7 @@
 #include "kcc.h"
 
 static int top;
+static int brknum;
 static int labelseq = 1;
 static char *argreg8[] = {"dil", "sil", "dl", "cl", "r8b", "r9b"};
 static char *argreg16[] = {"di", "si", "dx", "cx", "r8w", "r9w"};
@@ -311,24 +312,32 @@ static void gen_stmt(Node *node) {
         }
         case ND_FOR: {
             int seq = labelseq++;
+            int brk = brknum;
+            brknum = seq;
             if (node->init)
                 gen_stmt(node->init);
             printf(".L.begin.%d:\n", seq);
             if (node->cond) {
                 gen_expr(node->cond);
                 printf("    cmp %s, 0\n", reg(--top));
-                printf("    je .L.end.%d\n", seq);
+                printf("    je .L.break.%d\n", seq);
             }
             gen_stmt(node->then);
             if (node->inc)
                 gen_stmt(node->inc);
             printf("    jmp .L.begin.%d\n", seq);
-            printf(".L.end.%d:\n", seq);
+            printf(".L.break.%d:\n", seq);
+            brknum = brk;
             return;
         }
         case ND_BLOCK:
             for (Node *n = node->body; n; n = n->next)
                 gen_stmt(n);
+            return;
+        case ND_BREAK:
+            if (brknum == 0)
+                error_tok(node->tok, "stray break");
+            printf("    jmp .L.break.%d\n", brknum);
             return;
         case ND_RETURN:
             gen_expr(node->lhs);

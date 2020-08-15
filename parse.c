@@ -572,6 +572,7 @@ static Node *declaration(Token **rest, Token *tok) {
 //                   | "if" "(" expr ")" stmt ("else" stmt)?
 //                   | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //                   | "while" "(" expr ")" stmt
+//                   | "break" ";"
 //                   | "{" compound_stmt
 // expr-stmt         = expr
 // expr              = assign ("," expr)?
@@ -606,6 +607,7 @@ static Node *declaration(Token **rest, Token *tok) {
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
+//      | "break" ";"
 //      | "{" compound_stmt
 static Node *stmt(Token **rest, Token *tok) {
     Node *node;
@@ -669,6 +671,11 @@ static Node *stmt(Token **rest, Token *tok) {
 
         node->then = stmt(rest, tok);
         return node;
+    }
+
+    if (equal(tok, "break")) {
+        *rest = skip(tok->next, ";");
+        return new_node(ND_BREAK, tok);
     }
 
     if (equal(tok, "{")) {
