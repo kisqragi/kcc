@@ -94,6 +94,7 @@ typedef enum {
     ND_FOR,         // "for"
     ND_BLOCK,       // { ... }
     ND_BREAK,       // "break"
+    ND_CONTINUE,    // "continue"
     ND_FUNCALL,     // 関数呼び出し
     ND_EXPR_STMT,   // Expression statement
     ND_STMT_EXPR,   // Statement expression
