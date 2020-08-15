@@ -283,6 +283,14 @@ static void gen_expr(Node *node) {
             printf("    setle al\n");
             printf("    movzb %s, al\n", rd);
             return;
+        case ND_SHL:
+            printf("    mov rcx, %s\n", rs);
+            printf("    sal %s, cl\n", rd);
+            return;
+        case ND_SHR:
+            printf("    mov rcx, %s\n", rs);
+            printf("    sar %s, cl\n", rd);
+            return;
         default:
             error_tok(node->tok, "invalid expression");
     }
