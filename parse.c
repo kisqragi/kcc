@@ -1081,27 +1081,40 @@ static Type *struct_union_decl(Token **rest, Token *tok) {
     }
 
     if (tag && !equal(tok, "{")) {
-        TagScope *sc = find_tag(tag);
-        if (!sc)
-            error_tok(tag, "unknown struct type");
         *rest = tok;
-        return sc->ty;
+
+        TagScope *sc = find_tag(tag);
+        if (sc)
+            return sc->ty;
+
+        Type *ty = struct_type();
+        ty->size = -1;
+        push_tag_scope(tag, ty);
+        return ty;
     }
 
-    // 構造体オブジェクトの作成
-    Type *ty = calloc(1, sizeof(Type));
-    ty->kind = TY_STRUCT;
-    ty->members = struct_members(rest, tok->next);
+    tok = skip(tok, "{");
 
-    if (tag)
+    Type *ty = struct_type();
+    ty->members = struct_members(rest, tok);
+
+    if (tag) {
+        TagScope *sc = find_tag(tag);
+        if (sc && sc->depth == scope_depth) {
+            *sc->ty = *ty;
+            return sc->ty;
+        }
         push_tag_scope(tag, ty);
-
+    }
     return ty;
 }
 
 // struct-decl = struct-union-decl
 static Type *struct_decl(Token **rest, Token *tok) {
     Type *ty = struct_union_decl(rest, tok);
+
+    if (ty->size < 0)
+        return ty;
 
     // 構造体内のオフセットをメンバに割り当てる
     int offset = 0;
@@ -1120,6 +1133,9 @@ static Type *struct_decl(Token **rest, Token *tok) {
 // union-decl = struct-union-decl
 static Type *union_decl(Token **rest, Token *tok) {
     Type *ty = struct_union_decl(rest, tok);
+
+    if (ty->size < 0)
+        return ty;
 
     for (Member *mem = ty->members; mem; mem = mem->next) {
         if (ty->align < mem->ty->align)

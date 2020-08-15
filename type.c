@@ -30,6 +30,10 @@ Type *enum_type(void) {
     return new_type(TY_ENUM, 4, 4);
 }
 
+Type *struct_type(void) {
+    return new_type(TY_STRUCT, 0, 1);
+}
+
 Type *copy_type(Type *ty) {
     Type *ret = calloc(1, sizeof(Type));
     *ret = *ty;
