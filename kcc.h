@@ -95,6 +95,8 @@ typedef enum {
     ND_BLOCK,       // { ... }
     ND_BREAK,       // "break"
     ND_CONTINUE,    // "continue"
+    ND_GOTO,        // "goto"
+    ND_LABEL,       // Labeled statement
     ND_FUNCALL,     // 関数呼び出し
     ND_EXPR_STMT,   // Expression statement
     ND_STMT_EXPR,   // Statement expression
@@ -133,6 +135,9 @@ struct Node {
     Type *func_ty;
     Var **args;
     int nargs;
+
+    // Goto or labeled statement
+    char *label_name;
 
     Var *var;       // ND_VARの場合、変数情報を格納するのに使う
     long val;       // ND_NUMの場合、値を格納するのに使う
