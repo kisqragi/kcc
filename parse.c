@@ -580,7 +580,7 @@ static Initializer *initializer(Token **rest, Token *tok, Type *ty) {
         tok = skip(tok, "{");
         Initializer *init = new_init(ty, ty->array_len, NULL, tok);
 
-        for (int i = 0; i < ty->array_len; i++) {
+        for (int i = 0; i < ty->array_len && !equal(tok, "}"); i++) {
             if (i > 0)
                 tok = skip(tok, ",");
             init->children[i] = initializer(&tok, tok, ty->base);
@@ -606,14 +606,15 @@ static Node *create_lvar_init(Initializer *init, Type *ty, InitDesg *desg, Token
         Node *node = new_node(ND_NULL_EXPR, tok);
         for (int i = 0; i < ty->array_len; i++) {
             InitDesg desg2 = {desg, i};
-            Node *rhs = create_lvar_init(init->children[i], ty->base, &desg2, tok);
+            Initializer *child = init ? init->children[i] : NULL;
+            Node *rhs = create_lvar_init(child, ty->base, &desg2, tok);
             node = new_binary(ND_COMMA, node, rhs, tok);
         }
         return node;
     }
 
     Node *lhs = init_desg_expr(desg, tok);
-    Node *rhs = init->expr;
+    Node *rhs = init ? init->expr : new_num(0, tok);
     return new_binary(ND_ASSIGN, lhs, rhs, tok);
 }
 
