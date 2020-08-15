@@ -161,6 +161,19 @@ static void gen_expr(Node *node) {
             gen_expr(node->lhs);
             cast(node->lhs->ty, node->ty);
             return;
+        case ND_COND: {
+            int seq = labelseq++;
+            gen_expr(node->cond);
+            printf("    cmp %s, 0\n", reg(--top));
+            printf("    je .L.else.%d\n", seq);
+            gen_expr(node->then);
+            top--;
+            printf("    jmp .L.end.%d\n", seq);
+            printf(".L.else.%d:\n", seq);
+            gen_expr(node->els);
+            printf(".L.end.%d:\n", seq);
+            return;
+        }
         case ND_NOT:
             gen_expr(node->lhs);
             printf("    cmp %s, 0\n", reg(top-1));

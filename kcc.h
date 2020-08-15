@@ -78,6 +78,7 @@ typedef enum {
     ND_LT,          // <=
     ND_LE,          // >=
     ND_ASSIGN,      // =
+    ND_COND,        // ?: (条件付/三項演算子, conditional operator)
     ND_COMMA,       // ,
     ND_ADDR,        // &
     ND_MEMBER,      // . (メンバ参照演算子)
