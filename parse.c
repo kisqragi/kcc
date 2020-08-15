@@ -27,6 +27,24 @@ typedef struct {
     bool is_static;
 } VarAttr;
 
+typedef struct Initializer Initializer;
+struct Initializer {
+    Type *ty;
+    Token *tok;
+
+    int len;
+    Node *expr;
+
+    Initializer **children;
+};
+
+typedef struct InitDesg InitDesg;
+struct InitDesg {
+    InitDesg *next;
+    int idx;
+    Var *var;
+};
+
 // ローカル変数のリスト
 static Var *locals;
 static Var *globals;
@@ -50,6 +68,7 @@ static Type *type_suffix(Token **rest, Token *tok, Type *ty);
 static Type *declarator(Token **rest, Token *tok, Type *ty);
 static Type *typespec(Token **rest, Token *tok, VarAttr *attr);
 static Type *enum_specifier(Token **rest, Token *tok);
+static Node *lvar_initializer(Token **rest, Token *tok, Var *var);
 static Node *compound_stmt(Token **rest, Token *tok);
 static Node *stmt(Token **rest, Token *tok);
 static Node *expr_stmt(Token **rest, Token *tok);
@@ -156,6 +175,17 @@ static VarScope *push_scope(char *name) {
     sc->depth = scope_depth;
     var_scope = sc;
     return sc;
+}
+
+static Initializer *new_init(Type *ty, int len, Node *expr, Token *tok) {
+    Initializer *init = calloc(1, sizeof(Initializer));
+    init->ty = ty;
+    init->tok = tok;
+    init->len = len;
+    init->expr = expr;
+    if (len)
+        init->children = calloc(len, sizeof(Initializer *));
+    return init;
 }
 
 static Var *new_var(char *name, Type *ty) {
@@ -527,13 +557,13 @@ static Node *declaration(Token **rest, Token *tok) {
             error_tok(tok, "variable declared void");
         Var *var = new_lvar(get_ident(ty->name), ty);
 
-        if (!equal(tok, "="))
-            continue;
+        if (equal(tok, "=")) {
+            Node *expr = lvar_initializer(&tok, tok->next, var);
+            cur = cur->next = new_unary(ND_EXPR_STMT, expr, tok);
+        }
 
-        Node *lhs = new_var_node(var, ty->name);
-        Node *rhs = assign(&tok, tok->next);
-        Node *node = new_binary(ND_ASSIGN, lhs, rhs, tok);
-        cur = cur->next = new_unary(ND_EXPR_STMT, node, tok);
+        if (ty->size < 0)
+            error_tok(tok, "variable has incomplete type");
 
     }
 
@@ -541,6 +571,56 @@ static Node *declaration(Token **rest, Token *tok) {
     node->body = head.next;
     *rest = tok->next;
     return node;
+}
+
+// initializer = "{" initializer ("," initializer)* "}"
+//             | assign
+static Initializer *initializer(Token **rest, Token *tok, Type *ty) {
+    if (ty->kind == TY_ARRAY) {
+        tok = skip(tok, "{");
+        Initializer *init = new_init(ty, ty->array_len, NULL, tok);
+
+        for (int i = 0; i < ty->array_len; i++) {
+            if (i > 0)
+                tok = skip(tok, ",");
+            init->children[i] = initializer(&tok, tok, ty->base);
+        }
+        *rest = skip(tok, "}");
+        return init;
+    }
+
+    return new_init(ty, 0, assign(rest, tok), tok);
+}
+
+Node *init_desg_expr(InitDesg *desg, Token *tok) {
+    if (desg->var)
+        return new_var_node(desg->var, tok);
+
+    Node *lhs = init_desg_expr(desg->next, tok);
+    Node *rhs = new_num(desg->idx, tok);
+    return new_unary(ND_DEREF, new_add(lhs, rhs, tok), tok);
+}
+
+static Node *create_lvar_init(Initializer *init, Type *ty, InitDesg *desg, Token *tok) {
+    if (ty->kind == TY_ARRAY) {
+        Node *node = new_node(ND_NULL_EXPR, tok);
+        for (int i = 0; i < ty->array_len; i++) {
+            InitDesg desg2 = {desg, i};
+            Node *rhs = create_lvar_init(init->children[i], ty->base, &desg2, tok);
+            node = new_binary(ND_COMMA, node, rhs, tok);
+        }
+        return node;
+    }
+
+    Node *lhs = init_desg_expr(desg, tok);
+    Node *rhs = init->expr;
+    return new_binary(ND_ASSIGN, lhs, rhs, tok);
+}
+
+static Node *lvar_initializer(Token **rest, Token *tok, Var *var) {
+    Initializer *init = initializer(rest, tok, var->ty);
+    InitDesg desg = {NULL, 0, var};
+    return create_lvar_init(init, var->ty, &desg, tok);
 }
 
 //==================================================
@@ -606,6 +686,7 @@ static Node *declaration(Token **rest, Token *tok) {
 //                   | "sizeof" unary
 //                   | ident func-args?
 //                   | str
+//                   | num
 // func-args         = "(" (assign ("," assign)*)? ")"
 //
 //==================================================
