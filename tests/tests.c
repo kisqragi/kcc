@@ -530,6 +530,9 @@ int main() {
     assert(4, ({ int i=0; while (1) { if (i++ == 3) break; } i; }), "({ int i=0; while (1) { if (i++ == 3) break; } i; })");
     assert(4, ({ int i=0; while (1) { while(1) break; if (i++ == 3) break; } i; }), "({ int i=0; while (1) { while(1) break; if (i++ == 3) break; } i; })");
 
+    assert(3, ({ int i = 0; for (;i<3;i++)i; i; }), "({ int i = 0; for (;i<3;i++)i; i; })");
+    assert(5, ({ int i = 0; for(;;) { if (++i == 5) break; } i; }), "({ int i = 0; for(;;) { if (++i == 5) break; } i; })");
+
 
     printf("OK\n");
     return 0;

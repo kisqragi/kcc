@@ -643,7 +643,10 @@ static Node *stmt(Token **rest, Token *tok) {
         if (is_typename(tok)) {
             node->init = declaration(&tok, tok);
         } else {
-            node->init = expr_stmt(&tok, tok);
+            if (equal(tok, ";")) 
+                node->init = NULL;
+            else
+                node->init = expr_stmt(&tok, tok);
             tok = skip(tok, ";");
         }
 
