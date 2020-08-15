@@ -334,6 +334,39 @@ static void gen_stmt(Node *node) {
             contnum = cont;
             return;
         }
+        case ND_SWITCH: {
+            int seq = labelseq++;
+            int brk = brknum;
+            brknum = node->case_label = seq;
+
+            gen_expr(node->cond);
+
+            for (Node *n = node->case_next; n; n = n->case_next) {
+                n->case_label = labelseq++;
+                n->case_end_label = seq;
+                printf("    cmp %s, %ld\n", reg(top-1), n->val);
+                printf("    je .L.case.%d\n", n->case_label);
+            }
+            top--;
+
+            if (node->default_case) {
+                int i = labelseq++;
+                node->default_case->case_end_label = seq;
+                node->default_case->case_label = i;
+                printf("    jmp .L.case.%d\n", i);
+            }
+
+            printf("    jmp .L.break.%d\n", seq);
+            gen_stmt(node->then);
+            printf(".L.break.%d:\n", seq);
+
+            brknum = brk;
+            return;
+        }
+        case ND_CASE:
+            printf(".L.case.%d:\n", node->case_label);
+            gen_stmt(node->lhs);
+            return;
         case ND_BLOCK:
             for (Node *n = node->body; n; n = n->next)
                 gen_stmt(n);

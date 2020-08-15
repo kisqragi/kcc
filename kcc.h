@@ -92,6 +92,8 @@ typedef enum {
     ND_LOGOR ,      // ||
     ND_IF,          // "if"
     ND_FOR,         // "for"
+    ND_SWITCH,      // "switch"
+    ND_CASE,        // "case"
     ND_BLOCK,       // { ... }
     ND_BREAK,       // "break"
     ND_CONTINUE,    // "continue"
@@ -138,6 +140,12 @@ struct Node {
 
     // Goto or labeled statement
     char *label_name;
+
+    // Switch-cases
+    Node *case_next;
+    Node *default_case;
+    int case_label;
+    int case_end_label;
 
     Var *var;       // ND_VARの場合、変数情報を格納するのに使う
     long val;       // ND_NUMの場合、値を格納するのに使う

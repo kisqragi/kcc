@@ -41,6 +41,10 @@ static int scope_depth;
 // 現在parse中の関数を示す
 static Var *current_fn;
 
+// switch文を解析しているときは、そのノードを指す。
+// そうでなければNULL.
+static Node *current_switch;
+
 static bool is_typename(Token *tok);
 static Type *type_suffix(Token **rest, Token *tok, Type *ty);
 static Type *declarator(Token **rest, Token *tok, Type *ty);
@@ -570,6 +574,9 @@ static Node *declaration(Token **rest, Token *tok) {
 // stmt              = "return"? expr ";"
 //                   | "{" stmt* "}"
 //                   | "if" "(" expr ")" stmt ("else" stmt)?
+//                   | "switch" "(" expr ")" stmt
+//                   | "case" num ":" stmt
+//                   | "default" ":" stmt
 //                   | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //                   | "while" "(" expr ")" stmt
 //                   | "break" ";"
@@ -609,6 +616,9 @@ static Node *declaration(Token **rest, Token *tok) {
 // stmt = "return"? expr ";"
 //      | "{" stmt* "}"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
+//      | "switch" "(" expr ")" stmt
+//      | "case" num ":" stmt
+//      | "default" ":" stmt
 //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
 //      | "break" ";"
@@ -639,6 +649,44 @@ static Node *stmt(Token **rest, Token *tok) {
         if (equal(tok, "else"))
             node->els = stmt(&tok, tok->next);
         *rest = tok;
+        return node;
+    }
+
+    if (equal(tok, "switch")) {
+        Node *node = new_node(ND_SWITCH, tok);
+        tok = skip(tok->next, "(");
+        node->cond = expr(&tok, tok);
+        tok = skip(tok, ")");
+
+        Node *sw = current_switch;
+        current_switch = node;
+        node->then = stmt(rest, tok);
+        current_switch = sw;
+        return node;
+    }
+
+    if (equal(tok, "case")) {
+        if (!current_switch)
+            error_tok(tok, "stray case");
+        int val = get_number(tok->next);
+
+        Node *node = new_node(ND_CASE, tok);
+        tok = skip(tok->next->next, ":");
+        node->lhs = stmt(rest, tok);
+        node->val = val;
+        node->case_next = current_switch->case_next;
+        current_switch->case_next = node;
+        return node;
+    }
+
+    if (equal(tok, "default")) {
+        if (!current_switch)
+            error_tok(tok, "stray default");
+
+        Node *node = new_node(ND_CASE, tok);
+        tok = skip(tok->next, ":");
+        node->lhs = stmt(rest, tok);
+        current_switch->default_case = node;
         return node;
     }
 
