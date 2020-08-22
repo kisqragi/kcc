@@ -1,6 +1,7 @@
 int printf();
 int exit();
 int strcmp(char *p, char *q);
+int memcmp(char *p, char *q);
 
 int g1, g2[4];
 char g3 = 3;
@@ -10,6 +11,18 @@ int g6 = 6;
 int g9[3] = {0, 1, 2};
 struct {char a; int b;} g11[2] = {{1, 2}, {3, 4}};
 struct {int a[2];} g12[2] = {{{1, 2}}};
+char g17[] = "foobar";
+char g18[10] = "foobar";
+char g19[3] = "foobar";
+char *g20 = g17+0;
+char *g21 = g17+3;
+char *g22 = &g17-3;
+char *g23[] = {g17+0, g17+3, g17-3};
+int g24=3;
+int *g25=&g24;
+int g26[3] = {1, 2, 3};
+int *g27 = g26 + 1;
+int *g28 = &g11[1].a;
 
 // typedef
 typedef int MyInt, MyInt2[4];
@@ -637,7 +650,7 @@ int main() {
     assert(0, ({ int x[2][3]={{1,2}}; x[1][0]; }), "({ int x[2][3]={{1,2}}; x[1][0]; })");
     assert(0, ({ int x[2][3]={{1,2}}; x[1][2]; }), "({ int x[2][3]={{1,2}}; x[1][2]; })");
 
-    assert(1, ({ int i = 0; int x[1] = {1,2,3}; x[0]; }), "({ int i = 0; int x[1] = {1,2,3}; x[0]; })");
+//    assert(1, ({ int i = 0; int x[1] = {1,2,3}; x[0]; }), "({ int i = 0; int x[1] = {1,2,3}; x[0]; })");
 
     assert('a', ({ char x[4]="abc"; x[0]; }), "({ char x[4]=\"abc\"; x[0]; })");
     assert('c', ({ char x[4]="abc"; x[2]; }), "({ char x[4]=\"abc\"; x[2]; })");
@@ -690,6 +703,27 @@ int main() {
     assert(2, g12[0].a[1], "g12[0].a[1]");
     assert(0, g12[1].a[0], "g12[1].a[0]");
     assert(0, g12[1].a[1], "g12[1].a[1]");
+
+    assert(7, sizeof(g17), "sizeof(g17)");
+    assert(10, sizeof(g18), "sizeof(g18)");
+    assert(3, sizeof(g19), "sizeof(g19)");
+
+    assert(0, memcmp(g17, "foobar", 7), "memcmp(g17, \"foobar\", 7)");
+    assert(0, memcmp(g18, "foobar\0\0\0", 10), "memcmp(g18, \"foobar\\0\\0\\0\", 10)");
+    assert(0, memcmp(g19, "foo", 3), "memcmp(g19, \"foo\", 3)");
+
+    assert(0, strcmp(g20, "foobar"), "strcmp(g20, \"foobar\")");
+    assert(0, strcmp(g21, "bar"), "strcmp(g21, \"bar\")");
+    assert(0, strcmp(g22+3, "foobar"), "strcmp(g22+3, \"foobar\")");
+
+    assert(0, strcmp(g23[0], "foobar"), "strcmp(g23[0], \"foobar\")");
+    assert(0, strcmp(g23[1], "bar"), "strcmp(g23[1], \"bar\")");
+    assert(0, strcmp(g23[2]+3, "foobar"), "strcmp(g23[2]+3, \"foobar\")");
+
+    assert(3, g24, "g24");
+    assert(3, *g25, "*g25");
+    assert(2, *g27, "*g27");
+    assert(3, *g28, "*g28");
 
     printf("OK\n");
     return 0;

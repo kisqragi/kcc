@@ -11,6 +11,7 @@
 
 typedef struct Type Type;
 typedef struct Member Member;
+typedef struct Relocation Relocation;
 
 //
 // tokenizer.c
@@ -65,6 +66,14 @@ struct Var {
 
     // グローバル変数
     char *init_data;
+    Relocation *rel;
+};
+
+struct Relocation {
+    Relocation *next;
+    int offset;
+    char *label;
+    long addend;
 };
 
 typedef enum {
