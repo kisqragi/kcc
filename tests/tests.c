@@ -23,10 +23,11 @@ int *g25=&g24;
 int g26[3] = {1, 2, 3};
 int *g27 = g26 + 1;
 int *g28 = &g11[1].a;
-
 struct {int a[2];} g30[2] = {{1, 2}, 3, 4};
 struct {int a[2];} g31[2] = {1, 2, 3, 4};
 char g33[][4] = {'f', 'o', 'o', 0, 'b', 'a', 'r', 0};
+char *g34 = {"foo"};
+
 
 // typedef
 typedef int MyInt, MyInt2[4];
@@ -747,6 +748,8 @@ int main() {
 
     assert(0, strcmp(g33[0], "foo"), "strcmp(g33[0], \"foo\")");
     assert(0, strcmp(g33[1], "bar"), "strcmp(g33[1], \"bar\")");
+
+    assert(0, strcmp(g34, "foo"), "strcmp(g34, \"foo\")");
 
     printf("OK\n");
     return 0;
