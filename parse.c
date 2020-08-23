@@ -389,9 +389,15 @@ static Type *typespec(Token **rest, Token *tok, VarAttr *attr) {
     return ty;
 }
 
-// func-params = (param ("," param)*)? ")"
+// func-params = ("void" | param ("," param)*)? ")"
 // param       = typespec declarator
 static Type *func_params(Token **rest, Token *tok, Type *ty) {
+
+    if (equal(tok, "void") && equal(tok->next, ")")) {
+        *rest = tok->next->next;
+        return func_type(ty);
+    }
+
     Type head = {};
     Type *cur = &head;
 
@@ -848,7 +854,7 @@ static void gvar_initializer(Token **rest, Token *tok, Var *var) {
 // program           = (funcdef | global-var)*
 // funcdef           = typespec declarator compound-stmt
 // declarator        = "*"* ident type-suffix
-// func-params       = (param ("," param)*)? ")"
+// func-params       = ("void" | param ("," param)*)? ")"
 // param             = typespec declarator
 // array-dimensions  = const-expr? "]" type-suffix
 // type-suffix       = "(" func-params
