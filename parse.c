@@ -73,6 +73,7 @@ static Type *typespec(Token **rest, Token *tok, VarAttr *attr);
 static Type *typename(Token **rest, Token *tok);
 static Type *enum_specifier(Token **rest, Token *tok);
 static Node *lvar_initializer(Token **rest, Token *tok, Var *var);
+static void gvar_initializer(Token **rest, Token *tok, Var *var);
 static Initializer *initializer(Token **rest, Token *tok, Type *ty);
 static Initializer *initializer2(Token **rest, Token *tok, Type *ty);
 static Node *compound_stmt(Token **rest, Token *tok);
@@ -601,13 +602,20 @@ static Node *declaration(Token **rest, Token *tok) {
             continue;
         }
 
-        Var *var = new_lvar(get_ident(ty->name), ty);
-        if (attr.align)
-            var->align = attr.align;
+        if (attr.is_static) {
+            Var *var = new_gvar(new_gvar_name(), ty, true);
+            push_scope(get_ident(ty->name))->var = var;
+            if (equal(tok, "="))
+                gvar_initializer(&tok, tok->next, var);
+        } else {
+            Var *var = new_lvar(get_ident(ty->name), ty);
+            if (attr.align)
+                var->align = attr.align;
 
-        if (equal(tok, "=")) {
-            Node *expr = lvar_initializer(&tok, tok->next, var);
-            cur = cur->next = new_unary(ND_EXPR_STMT, expr, tok);
+            if (equal(tok, "=")) {
+                Node *expr = lvar_initializer(&tok, tok->next, var);
+                cur = cur->next = new_unary(ND_EXPR_STMT, expr, tok);
+            }
         }
 
         if (ty->size < 0)
