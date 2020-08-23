@@ -110,6 +110,9 @@ int counter() {
     return i++ + j++;
 }
 
+int add_all1(int x, ...);
+int add_all3(int z, int b, int c, ...);
+
 int assert(long expected, long actual, char *code) {
     if (expected == actual) {
         printf("%s => %ld\n", code, actual);
@@ -848,6 +851,12 @@ int main() {
 
     assert(1, true_fn(), "true_fn()");
     assert(0, false_fn(), "false_fn()");
+
+    assert(6, add_all1(1,2,3,0), "add_all1(1,2,3,0)");
+    assert(5, add_all1(1,2,3,-1,0), "add_all1(1,2,3,-1,0)");
+
+    assert(6, add_all3(1,2,3,0), "add_all3(1,2,3,0)");
+    assert(5, add_all3(1,2,3,-1,0), "add_all3(1,2,3,-1,0)");
 
     printf("OK\n");
     return 0;

@@ -172,6 +172,8 @@ struct Function {
     char *name;
     Var *params;    // 引数
     bool is_static;
+    bool s_variadic;
+
     Node *node;
     Var *locals;
     int stack_size;
@@ -224,6 +226,7 @@ struct Type {
     // Function type
     Type *return_ty;
     Type *params;
+    bool is_variadic;
     Type *next;
 };
 
