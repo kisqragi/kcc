@@ -118,6 +118,20 @@ static void divmod(Node *node, char *rs, char *rd, char *r64, char *r32) {
     }
 }
 
+static void builtin_va_start(Node *node) {
+    int n = 0;
+    for (Var *var = current_fn->params; var; var = var->next)
+        n++;
+
+    char *rd = reg(top);
+    printf("    mov rax, [rbp-%d]\n", node->args[0]->offset);
+    printf("    mov %s, %d\n", rd, n*8);
+    printf("    mov [rax], %s\n", rd);
+    printf("    mov [rax+16], rbp\n");
+    printf("    subq [rax+16], 80\n");
+    top++;
+}
+
 static void gen_expr(Node *node) {
     printf(".loc 1 %d\n", node->tok->line_no);
     switch (node->kind) {
@@ -215,6 +229,10 @@ static void gen_expr(Node *node) {
             return;
         }
         case ND_FUNCALL: {
+            if (!strcmp(node->funcname, "__builtin_va_start")) {
+                builtin_va_start(node);
+                return;
+            }
             // caller-saved registers
             printf("    push r10\n");
             printf("    push r11\n");
@@ -506,6 +524,15 @@ static void emit_text(Program *prog) {
         printf("    mov [rbp-16], r13\n");
         printf("    mov [rbp-24], r14\n");
         printf("    mov [rbp-32], r15\n");
+
+        if (fn->is_variadic) {
+            printf("    mov [rbp-80], rdi\n");
+            printf("    mov [rbp-72], rsi\n");
+            printf("    mov [rbp-64], rdx\n");
+            printf("    mov [rbp-56], rcx\n");
+            printf("    mov [rbp-48], r8\n");
+            printf("    mov [rbp-40], r9\n");
+        }
 
         // スタックに引数を保存する
         int i = 0;

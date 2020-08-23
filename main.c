@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
 
     for (Function *fn = prog->fns; fn; fn = fn->next) {
         // オフセットの割り当て
-        int offset = 32;    // callee-save registers用の32Byte
+        int offset = fn->is_variadic ? 80 : 32;
         for (Var *var = fn->locals; var; var = var->next) {
             offset = align_to(offset, var->align);
             offset += var->ty->size;

@@ -96,6 +96,13 @@ _Bool bool_fn_sub(_Bool x) { return x - 1; }
 _Bool true_fn();
 _Bool false_fn();
 
+typedef struct {
+    int gp_offset;
+    int fp_offset;
+    void *overflow_arg_area;
+    void *reg_save_area;
+} va_list[1];
+
 static int static_fn() { return 3; }
 
 void ret_node() {
@@ -112,6 +119,15 @@ int counter() {
 
 int add_all1(int x, ...);
 int add_all3(int z, int b, int c, ...);
+int add_all3(int z, int b, int c, ...);
+int sprintf(char *buf, char *fmt, ...);
+int vsprintf(char *buf, char *fmt, va_list ap);
+
+char *fmt(char *buf, char *fmt, ...) {
+    va_list ap;
+    __builtin_va_start(ap, fmt);
+    vsprintf(buf, fmt, ap);
+}
 
 int assert(long expected, long actual, char *code) {
     if (expected == actual) {
@@ -857,6 +873,11 @@ int main() {
 
     assert(6, add_all3(1,2,3,0), "add_all3(1,2,3,0)");
     assert(5, add_all3(1,2,3,-1,0), "add_all3(1,2,3,-1,0)");
+
+    assert(0, ({ char buf[100]; sprintf(buf, "%d %d %s", 1, 2, "foo"); strcmp("1 2 foo", buf); }), "({ char buf[100]; sprintf(buf, \"%d %d %s\", 1, 2, \"foo\"); strcmp(\"1 2 foo\", buf); })");
+
+    assert(0, ({ char buf[100]; fmt(buf, "%d %d %s", 1, 2, "foo"); strcmp("1 2 foo", buf); }), "({ char buf[100]; fmt(buf, \"%d %d %s\", 1, 2, \"foo\"); strcmp(\"1 2 foo\", buf); })");
+
 
     printf("OK\n");
     return 0;

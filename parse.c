@@ -275,6 +275,7 @@ static Function *funcdef(Token **rest, Token *tok) {
     Function *fn = calloc(1, sizeof(Function));
     fn->name = get_ident(ty->name);
     fn->is_static = attr.is_static;
+    fn->is_variadic = ty->is_variadic;
 
     enter_scope();
 
@@ -1999,6 +2000,8 @@ static Node *primary(Token **rest, Token *tok) {
 
 // program = (funcdef | global-var)*
 Program *parse(Token *tok) {
+    new_gvar("__builtin_va_start", func_type(ty_void), true, false);
+
     Function head = {};
     Function *cur = &head;
     globals = NULL;

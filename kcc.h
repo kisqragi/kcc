@@ -172,7 +172,7 @@ struct Function {
     char *name;
     Var *params;    // 引数
     bool is_static;
-    bool s_variadic;
+    bool is_variadic;
 
     Node *node;
     Var *locals;
