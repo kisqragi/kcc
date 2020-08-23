@@ -912,6 +912,7 @@ static void gvar_initializer(Token **rest, Token *tok, Var *var) {
 //                   | "(" expr ")"
 //                   | "sizeof" "(" type-name ")"
 //                   | "sizeof" unary
+//                   | "_Alignof" "(" type-name ")"
 //                   | ident func-args?
 //                   | str
 //                   | num
@@ -1844,6 +1845,7 @@ static Node *funcall(Token **rest, Token *tok) {
 //         | "(" expr ")"
 //         | "sizeof" "(" type-name ")"
 //         | "sizeof" unary
+//         | "_Alignof" "(" type-name ")"
 //         | ident func-args?
 //         | str
 //         | num
@@ -1878,6 +1880,13 @@ static Node *primary(Token **rest, Token *tok) {
         Node *node = unary(rest, tok->next);
         add_type(node);
         return new_num(node->ty->size, tok);
+    }
+
+    if (equal(tok, "_Alignof")) {
+        tok = skip(tok->next, "(");
+        Type *ty = typename(&tok, tok);
+        *rest = skip(tok, ")");
+        return new_num(ty->align, tok);
     }
 
     if (tok->kind == TK_IDENT) {
