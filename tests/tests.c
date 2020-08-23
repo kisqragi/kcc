@@ -93,6 +93,8 @@ int div_long(long a, long b) {
 
 _Bool bool_fn_add(_Bool x) { return x + 1; }
 _Bool bool_fn_sub(_Bool x) { return x - 1; }
+_Bool true_fn();
+_Bool false_fn();
 
 static int static_fn() { return 3; }
 
@@ -844,6 +846,8 @@ int main() {
     assert(7, ({ int i=0; int j=0; do { j++; } while (i++ < 6); j; }), "({ int i=0; int j=0; do { j++; } while (i++ < 6); j; })");
     assert(4, ({ int i=0; int j=0; int k=0; do { if (++j > 3) break; continue; k++; } while (1); j; }), "({ int i=0; int j=0; int k=0; do { if (++j > 3) break; continue; k++; } while (1); j; })");
 
+    assert(1, true_fn(), "true_fn()");
+    assert(0, false_fn(), "false_fn()");
 
     printf("OK\n");
     return 0;

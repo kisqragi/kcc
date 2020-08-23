@@ -236,6 +236,10 @@ static void gen_expr(Node *node) {
 
             printf("    mov rax, 0\n");
             printf("    call %s\n", node->funcname);
+            
+            if (node->ty->kind == TY_BOOL)
+                printf("    movzx rax, al\n");
+
             printf("    pop r11\n");
             printf("    pop r10\n");
             printf("    mov %s, rax\n", reg(top++));
