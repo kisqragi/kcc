@@ -17,6 +17,16 @@ static char *reg(int idx) {
     return r[idx];
 }
 
+static char *xreg(Type *ty, int idx) {
+    if (ty->base || ty->size == 8)
+        return reg(idx);
+
+    static char *r[] = {"r10d", "r11d", "r12d", "r13d", "r14d", "r15d"};
+    if (idx < 0 || sizeof(r) / sizeof(*r) <= idx)
+        error("register out of range: %d", idx);
+    return r[idx];
+}
+
 static void gen_expr(Node *node);
 static void gen_stmt(Node *node);
 
@@ -49,15 +59,19 @@ static void gen_addr(Node *node) {
 static void load(Type *ty) {
     if (ty->kind == TY_ARRAY || ty->kind == TY_STRUCT)
         return;
-    char *r = reg(top-1);
+
+    char *rs = reg(top-1);
+    char *rd = xreg(ty, top-1);
+    char *insn = ty->is_unsigned ? "movzx" : "movsx";
+
     if (ty->size == 1)
-        printf("    movsx %s, byte ptr [%s]\n", r, r);
+        printf("    %s %s, byte ptr [%s]\n", insn, rd, rs);
     else if (ty->size == 2)
-        printf("    movsx %s, word ptr [%s]\n", r, r);
+        printf("    %s %s, word ptr [%s]\n", insn, rd, rs);
     else if (ty->size == 4)
-        printf("    movsx %s, dword ptr [%s]\n", r, r);
+        printf("    mov %s, dword ptr [%s]\n", rd, rs);
     else
-        printf("    mov %s, [%s]\n", r, r);
+        printf("    mov %s, [%s]\n", rd, rs);
 }
 
 static void store(Type *ty) {
@@ -94,27 +108,39 @@ static void cast(Type *from, Type *to) {
         return;
     }
 
+    char *insn = to->is_unsigned ? "movzx" : "movsx";
+
     if (to->size == 1)
-        printf("    movsx %s, %sb\n", r, r);
+        printf("    %s %s, %sb\n", insn, r, r);
     else if (to->size == 2)
-        printf("    movsx %s, %sw\n", r, r);
+        printf("    %s %s, %sw\n", insn, r, r);
     else if (to->size == 4)
-        printf("    movsx %s, %sd\n", r, r);
-    else if (is_integer(from) && from->size < 8)
+        printf("    mov %sd, %sd\n", r, r);
+    else if (is_integer(from) && from->size < 8 && !from->is_unsigned)
         printf("    movsx %s, %sd\n", r, r);
 }
 
 static void divmod(Node *node, char *rs, char *rd, char *r64, char *r32) {
     if (node->ty->size == 8) {
         printf("    mov rax, %s\n", rd);
-        printf("    cqo\n");
-        printf("    idiv %s\n", rs);
+        if (node->ty->is_unsigned) {
+            printf("    mov rdx, 0\n");
+            printf("    div %s\n", rs);
+        } else {
+            printf("    cqo\n");
+            printf("    idiv %s\n", rs);
+        }
         printf("    mov %s, %s\n", rd, r64);
     } else {
-        printf("    mov eax, %sd\n", rd);
-        printf("    cdq\n");
-        printf("    idiv %sd\n", rs);
-        printf("    mov %sd, %s\n", rd, r32);
+        printf("    mov eax, %s\n", rd);
+        if (node->ty->is_unsigned) {
+            printf("    mov edx, 0\n");
+            printf("    div %s\n", rs);
+        } else {
+            printf("    cdq\n");
+            printf("    idiv %s\n", rs);
+        }
+        printf("    mov %s, %s\n", rd, r32);
     }
 }
 
@@ -269,8 +295,8 @@ static void gen_expr(Node *node) {
     gen_expr(node->lhs);
     gen_expr(node->rhs);
 
-    char *rd = reg(top - 2);
-    char *rs = reg(top - 1);
+    char *rd = xreg(node->lhs->ty, top - 2);
+    char *rs = xreg(node->lhs->ty, top - 1);
     top--;
 
     switch (node->kind) {
@@ -310,21 +336,30 @@ static void gen_expr(Node *node) {
             return;
         case ND_LT:
             printf("    cmp %s, %s\n", rd, rs);
-            printf("    setl al\n");
-            printf("    movzb %s, al\n", rd);
+            if (node->lhs->ty->is_unsigned)
+                printf("    setb al\n");
+            else
+                printf("    setl al\n");
+            printf("    movzx %s, al\n", rd);
             return;
         case ND_LE:
             printf("    cmp %s, %s\n", rd, rs);
-            printf("    setle al\n");
-            printf("    movzb %s, al\n", rd);
+            if (node->lhs->ty->is_unsigned)
+                printf("    setbe al\n");
+            else
+                printf("    setle al\n");
+            printf("    movzx %s, al\n", rd);
             return;
         case ND_SHL:
-            printf("    mov rcx, %s\n", rs);
+            printf("    mov rcx, %s\n", reg(top));
             printf("    sal %s, cl\n", rd);
             return;
         case ND_SHR:
-            printf("    mov rcx, %s\n", rs);
-            printf("    sar %s, cl\n", rd);
+            printf("    mov rcx, %s\n", reg(top));
+            if (node->lhs->ty->is_unsigned)
+                printf("    shr %s, cl\n", rd);
+            else
+                printf("    sar %s, cl\n", rd);
             return;
         default:
             error_tok(node->tok, "invalid expression");
