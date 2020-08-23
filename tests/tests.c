@@ -50,6 +50,7 @@ int _Alignas(512) g_aligned2;
 
 extern int ext1;
 extern int *ext2;
+static int ext3 = 3;
 
 // typedef
 typedef int MyInt, MyInt2[4];
@@ -833,6 +834,8 @@ int main() {
     assert(4, tree->lhs->rhs->val, "tree->lhs->rhs->val");
 
     ret_node();
+
+    assert(3, ext3, "ext3");
 
     printf("OK\n");
     return 0;
