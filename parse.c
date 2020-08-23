@@ -900,7 +900,7 @@ static void gvar_initializer(Token **rest, Token *tok, Var *var) {
 // struct-members    = (typespec declarator ("," declarator)* ";")* "}"
 // compound-stmt     = (declaration | stmt)* "}"
 // declaration       = typespec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
-// stmt              = "return"? expr ";"
+// stmt              = "return"? expr? ";"
 //                   | "{" stmt* "}"
 //                   | "if" "(" expr ")" stmt ("else" stmt)?
 //                   | "switch" "(" expr ")" stmt
@@ -948,7 +948,7 @@ static void gvar_initializer(Token **rest, Token *tok, Var *var) {
 //
 //==================================================
 
-// stmt = "return"? expr ";"
+// stmt = "return"? expr? ";"
 //      | "{" stmt* "}"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "switch" "(" expr ")" stmt
@@ -967,6 +967,8 @@ static Node *stmt(Token **rest, Token *tok) {
 
     if (equal(tok, "return")) {
         node = new_node(ND_RETURN, tok);
+        if (consume(rest, tok->next, ";"))
+            return node;
         Node *exp = expr(&tok, tok->next);
         *rest = skip(tok, ";");
 

@@ -410,8 +410,10 @@ static void gen_stmt(Node *node) {
             gen_stmt(node->lhs);
             return;
         case ND_RETURN:
-            gen_expr(node->lhs);
-            printf("    mov rax, %s\n", reg(--top));
+            if (node->lhs) {
+                gen_expr(node->lhs);
+                printf("    mov rax, %s\n", reg(--top));
+            }
             printf("    jmp .L.return.%s\n", current_fn->name);
             return;
         case ND_EXPR_STMT:
