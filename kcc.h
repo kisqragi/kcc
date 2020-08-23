@@ -60,6 +60,7 @@ struct Var {
     char *name; // 変数名
     Type *ty;   // Type
     bool is_local;
+    int align;  // alignment
 
     // ローカル変数
     int offset;
@@ -229,6 +230,7 @@ struct Member {
     Member *next;
     Type *ty;
     Token *name;
+    int align;
     int offset;
 };
 
