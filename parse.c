@@ -909,6 +909,7 @@ static void gvar_initializer(Token **rest, Token *tok, Var *var) {
 //                   | "default" ":" stmt
 //                   | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //                   | "while" "(" expr ")" stmt
+//                   | "do" stmt "while" "(" expr ")" ";"
 //                   | "break" ";"
 //                   | "continue" ";"
 //                   | "goto" ";"
@@ -957,6 +958,7 @@ static void gvar_initializer(Token **rest, Token *tok, Var *var) {
 //      | "default" ":" stmt
 //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
+//      | "do" stmt "while" "(" expr ")" ";"
 //      | "break" ";"
 //      | "continue" ";"
 //      | "goto" ";"
@@ -1067,6 +1069,17 @@ static Node *stmt(Token **rest, Token *tok) {
         tok = skip(tok, ")");
 
         node->then = stmt(rest, tok);
+        return node;
+    }
+
+    if (equal(tok, "do")) {
+        node = new_node(ND_DO, tok);    
+        node->then = stmt(&tok, tok->next);
+        tok = skip(tok, "while");
+        tok = skip(tok, "(");
+        node->cond = expr(&tok, tok);
+        tok = skip(tok, ")");
+        *rest = skip(tok, ";");
         return node;
     }
 

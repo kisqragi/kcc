@@ -106,6 +106,7 @@ typedef enum {
     ND_LOGOR ,      // ||
     ND_IF,          // "if"
     ND_FOR,         // "for"
+    ND_DO,          // "do"
     ND_SWITCH,      // "switch"
     ND_CASE,        // "case"
     ND_BLOCK,       // { ... }
