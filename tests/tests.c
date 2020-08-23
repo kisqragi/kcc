@@ -763,6 +763,10 @@ int main() {
     ext2 = &ext1;
     assert(5, *ext2, "*ext2");
 
+    int;
+    struct {char a; int b;};
+    typedef struct {char a; int b;} Ty1;
+
     printf("OK\n");
     return 0;
 }
