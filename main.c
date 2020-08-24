@@ -14,7 +14,8 @@ static void parse_args(int argc, char **argv) {
         if (!strcmp(argv[i], "--help"))
             usage(0);
 
-        if (!strcmp(argv[i], "-o")) {
+        if (strcmp(argv[i], "-o") == 0) {
+            fprintf(stderr, "-o check\n");
             if (!argv[++i])
                 usage(1);
             output_path = argv[i];
@@ -39,7 +40,7 @@ static void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
     parse_args(argc, argv);
 
-    if (!strcmp(output_path, "-")) {
+    if (strcmp(output_path, "-") == 0) {
         output_file = stdout;
     } else {
         output_file = fopen(output_path, "w");

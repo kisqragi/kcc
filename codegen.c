@@ -682,13 +682,14 @@ static void emit_bss(Program *prog) {
     printf(".bss\n");
 
     for (Var *var = prog->globals; var; var = var->next) {
-        if (!var->init_data) {
-            printf("    .align %d\n", var->align);
-            if (!var->is_static)
-                printf("    .globl %s\n", var->name);
-            printf("    %s:\n", var->name);
-            printf("    .zero %d\n", var->ty->size);
-        }
+        if (var->init_data)
+            continue;
+        
+        printf("    .align %d\n", var->align);
+        if (!var->is_static)
+            printf("    .globl %s\n", var->name);
+        printf("    %s:\n", var->name);
+        printf("    .zero %d\n", var->ty->size);
     }
 }
 

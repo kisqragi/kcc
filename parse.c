@@ -243,7 +243,7 @@ static char *new_gvar_name(void) {
 
 static Var *new_string_literal(char *p, int len) {
     Type *ty = array_of(ty_char, len);
-    Var *var = new_gvar(new_gvar_name(), ty, false, true);
+    Var *var = new_gvar(new_gvar_name(), ty, true, true);
     var->init_data = p;
     return var;
 }
