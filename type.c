@@ -34,6 +34,10 @@ bool is_flonum(Type *ty) {
     return ty->kind == TY_FLOAT || ty->kind == TY_DOUBLE;
 }
 
+bool is_numeric(Type *ty) {
+    return is_integer(ty) || is_flonum(ty);
+}
+
 static bool is_scalar(Type *ty) {
     return is_integer(ty) || is_flonum(ty) ||ty->base;
 }
