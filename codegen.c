@@ -346,33 +346,63 @@ static void gen_expr(Node *node) {
                 return;
             }
             // caller-saved registers
-            printf("    push r10\n");
-            printf("    push r11\n");
+            printf("    sub rsp, 64\n");
+            printf("    mov [rsp], r10\n");
+            printf("    mov [rsp+8], r11\n");
+            printf("    movsd [rsp+16], xmm8\n");
+            printf("    movsd [rsp+24], xmm9\n");
+            printf("    movsd [rsp+32], xmm10\n");
+            printf("    movsd [rsp+40], xmm11\n");
+            printf("    movsd [rsp+48], xmm12\n");
+            printf("    movsd [rsp+56], xmm13\n");
+
 
             // スタックから引数をロードする
+            int gp = 0, fp = 0;
             for (int i = 0; i < node->nargs; i++) {
                 Var *arg = node->args[i];
                 int sz = arg->ty->size;
 
+                if (is_flonum(arg->ty)) {
+                    if (arg->ty->kind == TY_FLOAT)
+                        printf("    movss xmm%d, [rbp-%d]\n", fp++, arg->offset);
+                    else
+                        printf("    movsd xmm%d, [rbp-%d]\n", fp++, arg->offset);
+                    continue;
+                }
+
                 if (sz == 1)
-                    printf("    movsx %s, byte ptr [rbp-%d]\n", argreg64[i], arg->offset);
+                    printf("    movsx %s, byte ptr [rbp-%d]\n", argreg64[gp++], arg->offset);
                 else if (sz == 2)
-                    printf("    movsx %s, word ptr [rbp-%d]\n", argreg64[i], arg->offset);
+                    printf("    movsx %s, word ptr [rbp-%d]\n", argreg64[gp++], arg->offset);
                 else if (sz == 4)
-                    printf("    mov %s, dword ptr [rbp-%d]\n", argreg32[i], arg->offset);
+                    printf("    mov %s, dword ptr [rbp-%d]\n", argreg32[gp++], arg->offset);
                 else
-                    printf("    mov %s, [rbp-%d]\n", argreg64[i], arg->offset);
+                    printf("    mov %s, [rbp-%d]\n", argreg64[gp++], arg->offset);
             }
 
-            printf("    mov rax, 0\n");
+            printf("    mov rax, %d\n", fp);
             printf("    call %s\n", node->funcname);
             
             if (node->ty->kind == TY_BOOL)
                 printf("    movzx rax, al\n");
 
-            printf("    pop r11\n");
-            printf("    pop r10\n");
-            printf("    mov %s, rax\n", reg(top++));
+            printf("    mov r10, [rsp]\n");
+            printf("    mov r11, [rsp+8]\n");
+            printf("    movsd xmm8, [rsp+16]\n");
+            printf("    movsd xmm9, [rsp+24]\n");
+            printf("    movsd xmm10, [rsp+32]\n");
+            printf("    movsd xmm11, [rsp+40]\n");
+            printf("    movsd xmm12, [rsp+48]\n");
+            printf("    movsd xmm13, [rsp+56]\n");
+            printf("    add rsp, 64\n");
+
+            if (node->ty->kind == TY_FLOAT)
+                printf("    movss %s, xmm0\n", freg(top++));
+            else if (node->ty->kind == TY_DOUBLE)
+                printf("    movsd %s, xmm0\n", freg(top++));
+            else
+                printf("    mov %s, rax\n", reg(top++));
             return;
         }
     }
