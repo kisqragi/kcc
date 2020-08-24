@@ -26,6 +26,9 @@ int main(int argc, char **argv) {
     parse_args(argc, argv);
 
     Token *tok = tokenize_file(input_path);
+    if (!tok)
+        error("%s: %s", input_path, strerror(errno));
+
     tok = preprocess(tok);
     Program *prog = parse(tok);
 
@@ -39,8 +42,6 @@ int main(int argc, char **argv) {
         }
         fn->stack_size = align_to(offset, 16);
     }
-
-    printf(".file 1 \"%s\"\n", argv[1]);
 
     codegen(prog);
 

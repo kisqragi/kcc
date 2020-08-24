@@ -234,7 +234,7 @@ static void builtin_va_start(Node *node) {
 }
 
 static void gen_expr(Node *node) {
-    printf(".loc 1 %d\n", node->tok->line_no);
+    printf(".loc %d %d\n", node->tok->file_no, node->tok->line_no);
     switch (node->kind) {
         case ND_NUM:
             if (node->ty->kind == TY_FLOAT) {
@@ -540,7 +540,7 @@ static void gen_expr(Node *node) {
 }
 
 static void gen_stmt(Node *node) {
-    printf(".loc 1 %d\n", node->tok->line_no);
+    printf(".loc %d %d\n", node->tok->file_no, node->tok->line_no);
     switch (node->kind) {
         case ND_IF: {
             int seq =  labelseq++;
@@ -799,6 +799,9 @@ static void emit_text(Program *prog) {
 }
 
 void codegen(Program *prog) {
+    char **paths = get_input_files();
+    for (int i = 0; paths[i]; i++)
+        printf("   .file %d \"%s\"\n", i+1, paths[i]);
 
     printf(".intel_syntax noprefix\n");
     emit_bss(prog);

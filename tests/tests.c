@@ -1,3 +1,5 @@
+#include "include1.h"
+
 int printf();
 int exit();
 int strcmp(char *p, char *q);
@@ -1189,6 +1191,9 @@ int main() {
 
 // null directive (for preprocessor test)
 #
+
+    assert(5, include1, "include1");
+    assert(7, include2, "include2");
 
     printf("OK\n");
     return 0;

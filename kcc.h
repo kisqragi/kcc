@@ -39,7 +39,10 @@ struct Token {
     char *contents; // '\0'を含む文字列リテラル
     char cont_len;  // 文字列リテラルの長さ
 
+    char *filename;
+    char *input;
     int line_no;    // 行番号
+    int file_no;    // .locディレクティブのファイル番号
     bool at_bol;    // このトークンが行の先頭の場合true
 };
 
@@ -51,6 +54,7 @@ bool equal(Token *tok, char *s);
 Token *skip(Token *tok, char *s);
 bool consume(Token **rest, Token *tok, char *str);
 void convert_keywords(Token *tok);
+char **get_input_files(void);
 Token *tokenize_file(char *filename);
 
 //

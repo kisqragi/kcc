@@ -13,13 +13,13 @@ kcc-stage2: kcc $(SRCS) kcc.h self.sh
 kcc-stage3: kcc-stage2
 	./self.sh tmp-stage3 ./kcc-stage2 kcc-stage3
 
-test: kcc
-	./kcc tests/tests.c > tmp.s
+test: kcc tests/extern.o
+	(cd tests; ../kcc tests.c) > tmp.s
 	$(CC) -static -o tmp tmp.s tests/extern.c
 	./tmp
 
 test-stage2: kcc-stage2
-	./kcc-stage2 tests/tests.c > tmp.s
+	(cd tests; ../kcc-stage2 tests.c) > tmp.s
 	$(CC) -static -o tmp tmp.s tests/extern.c
 	./tmp
 
