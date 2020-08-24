@@ -31,6 +31,7 @@ struct Token {
     TokenKind kind; // トークンの種類
     Token *next;    // 次のトークン
     long val;       // TK_NUMの場合に値を格納するのに使う
+    double fval;
     char *loc;      // トークンの位置
     int len;        // トークンの長さ
     Type *ty;
@@ -168,6 +169,7 @@ struct Node {
 
     Var *var;       // ND_VARの場合、変数情報を格納するのに使う
     long val;       // ND_NUMの場合、値を格納するのに使う
+    double fval;
 };
 
 typedef struct Function Function;
@@ -202,6 +204,8 @@ typedef enum {
     TY_SHORT,
     TY_INT,
     TY_LONG,
+    TY_FLOAT,
+    TY_DOUBLE,
     TY_ENUM,
     TY_PTR,
     TY_FUNC,
@@ -259,7 +263,11 @@ extern Type *ty_ushort;
 extern Type *ty_uint;
 extern Type *ty_ulong;
 
+extern Type *ty_float;
+extern Type *ty_double;
+
 bool is_integer(Type *ty);
+bool is_flonum(Type *ty);
 Type *copy_type(Type *ty);
 int align_to(int n, int align);
 Type *pointer_to(Type *base);
