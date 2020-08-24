@@ -2,6 +2,8 @@
 
 static char *input_path;
 
+static bool opt_E;
+
 static void usage(int status) {
     fprintf(stderr, "kcc <file>\n");
     exit(status);
@@ -11,6 +13,11 @@ static void parse_args(int argc, char **argv) {
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--help"))
             usage(0);
+
+        if (!strcmp(argv[i], "-E")) {
+            opt_E = true;
+            continue;
+        }
 
         if (argv[i][0] == '-' && argv[i][1] != '\0')
             error("unknown argument: %s", argv[i]);
@@ -22,6 +29,17 @@ static void parse_args(int argc, char **argv) {
         error("no input files");
 }
 
+static void print_tokens(Token *tok) {
+    int line = 1;
+    for (; tok->kind != TK_EOF; tok = tok->next) {
+        if (line > 1 && tok->at_bol)
+            printf("\n");
+        printf("%.*s", tok->len, tok->loc);
+        line++;
+    }
+    printf("\n");
+}
+
 int main(int argc, char **argv) {
     parse_args(argc, argv);
 
@@ -30,6 +48,12 @@ int main(int argc, char **argv) {
         error("%s: %s", input_path, strerror(errno));
 
     tok = preprocess(tok);
+
+    if (opt_E) {
+        print_tokens(tok);
+        exit(0);
+    }
+
     Program *prog = parse(tok);
 
     for (Function *fn = prog->fns; fn; fn = fn->next) {
