@@ -1187,6 +1187,9 @@ int main() {
     assert(1, g40==1.5, "g40==1.5");
     assert(1, g41==11, "g41==11");
 
+// null directive (for preprocessor test)
+#
+
     printf("OK\n");
     return 0;
 }

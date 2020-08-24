@@ -40,6 +40,7 @@ struct Token {
     char cont_len;  // 文字列リテラルの長さ
 
     int line_no;    // 行番号
+    bool at_bol;    // このトークンが行の先頭の場合true
 };
 
 
