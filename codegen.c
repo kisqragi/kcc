@@ -213,16 +213,23 @@ static void divmod(Node *node, char *rs, char *rd, char *r64, char *r32) {
 }
 
 static void builtin_va_start(Node *node) {
-    int n = 0;
-    for (Var *var = current_fn->params; var; var = var->next)
-        n++;
+    int gp = 0;
+    int fp = 0;
+    for (Var *var = current_fn->params; var; var = var->next) {
+        if (is_flonum(var->ty))
+            fp++;
+        else
+            gp++;
+    }
 
     char *rd = reg(top);
     printf("    mov rax, [rbp-%d]\n", node->args[0]->offset);
-    printf("    mov %s, %d\n", rd, n*8);
+    printf("    mov %s, %d\n", rd, gp*8);
     printf("    mov [rax], %s\n", rd);
+    printf("    mov %s, %d\n", rd, 48 + fp * 8);
+    printf("    mov [rax+4], %s\n", rd);
     printf("    mov [rax+16], rbp\n");
-    printf("    subq [rax+16], 80\n");
+    printf("    subq [rax+16], 128\n");
     top++;
 }
 
@@ -732,12 +739,18 @@ static void emit_text(Program *prog) {
         printf("    mov [rbp-32], r15\n");
 
         if (fn->is_variadic) {
-            printf("    mov [rbp-80], rdi\n");
-            printf("    mov [rbp-72], rsi\n");
-            printf("    mov [rbp-64], rdx\n");
-            printf("    mov [rbp-56], rcx\n");
-            printf("    mov [rbp-48], r8\n");
-            printf("    mov [rbp-40], r9\n");
+            printf("    mov [rbp-128], rdi\n");
+            printf("    mov [rbp-120], rsi\n");
+            printf("    mov [rbp-112], rdx\n");
+            printf("    mov [rbp-104], rcx\n");
+            printf("    mov [rbp-96], r8\n");
+            printf("    mov [rbp-88], r9\n");
+            printf("    movsd [rbp-80], xmm0\n");
+            printf("    movsd [rbp-72], xmm1\n");
+            printf("    movsd [rbp-64], xmm2\n");
+            printf("    movsd [rbp-56], xmm3\n");
+            printf("    movsd [rbp-48], xmm4\n");
+            printf("    movsd [rbp-40], xmm5\n");
         }
 
         // スタックに引数を保存する
