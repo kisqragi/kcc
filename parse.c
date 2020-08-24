@@ -161,6 +161,13 @@ static Node *new_num(long val, Token *tok) {
     return node;
 }
 
+static Node *new_ulong(long val, Token *tok) {
+    Node *node = new_node(ND_NUM, tok);
+    node->val = val;
+    node->ty = ty_ulong;
+    return node;
+}
+
 static Node *new_var_node(Var *var, Token *tok) {
     Node *node = new_node(ND_VAR, tok);
     node->var = var;
@@ -1984,18 +1991,18 @@ static Node *primary(Token **rest, Token *tok) {
         if (equal(tok->next, "(") && is_typename(tok->next->next)) {
             Type *ty = typename(&tok, tok->next->next);
             *rest = skip(tok, ")");
-            return new_num(ty->size, tok);
+            return new_ulong(ty->size, tok);
         }
         Node *node = unary(rest, tok->next);
         add_type(node);
-        return new_num(node->ty->size, tok);
+        return new_ulong(node->ty->size, tok);
     }
 
     if (equal(tok, "_Alignof")) {
         tok = skip(tok->next, "(");
         Type *ty = typename(&tok, tok);
         *rest = skip(tok, ")");
-        return new_num(ty->align, tok);
+        return new_ulong(ty->align, tok);
     }
 
     if (tok->kind == TK_IDENT) {
