@@ -142,6 +142,8 @@ struct Node {
     Node *init;
     Node *inc;
 
+    bool is_init;
+
     // Block or statement expression
     Node *body;
 
@@ -212,6 +214,7 @@ struct Type {
     int size;         // sizeof value
     int align;        // alignment
     bool is_unsigned; // unsigned or signed
+    bool is_const;
 
     // Pointer
     Type *base;
