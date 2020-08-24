@@ -1062,6 +1062,9 @@ int main() {
     assert(8, sizeof(2.0L), "sizeof(2.0L)");
 
 
+    assert(4, sizeof(-10 + (int)15.1), "sizeof(-10 + (int)15.1)");
+    assert(4, sizeof(-10 + (int)3e+10), "sizeof(-10 + (int)3e+10)");
+
     printf("OK\n");
     return 0;
 }
