@@ -1,7 +1,7 @@
 int printf();
 int exit();
 int strcmp(char *p, char *q);
-int memcmp(char *p, char *q);
+int memcmp(char *, char *);
 
 int g1, g2[4];
 char g3 = 3;

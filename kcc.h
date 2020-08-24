@@ -60,6 +60,7 @@ struct Var {
     Var *next;
     char *name; // 変数名
     Type *ty;   // Type
+    Token *tok;
     bool is_local;
     int align;  // alignment
 
@@ -221,6 +222,7 @@ struct Type {
 
     // 宣言
     Token *name;
+    Token *name_pos;
 
     // Array
     int array_len;
