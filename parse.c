@@ -2026,6 +2026,7 @@ static Node *primary(Token **rest, Token *tok) {
         error_tok(tok, "expected expression");
 
     Node *node = new_num(tok->val, tok);
+    node->ty = tok->ty;
     *rest = tok->next;
     return node;
 }

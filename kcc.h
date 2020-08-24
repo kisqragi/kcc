@@ -33,6 +33,7 @@ struct Token {
     long val;       // TK_NUMの場合に値を格納するのに使う
     char *loc;      // トークンの位置
     int len;        // トークンの長さ
+    Type *ty;
 
     char *contents; // '\0'を含む文字列リテラル
     char cont_len;  // 文字列リテラルの長さ
