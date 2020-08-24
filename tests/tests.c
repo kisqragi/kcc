@@ -1061,9 +1061,28 @@ int main() {
     assert(8, sizeof(5.l), "sizeof(5.l)");
     assert(8, sizeof(2.0L), "sizeof(2.0L)");
 
-
     assert(4, sizeof(-10 + (int)15.1), "sizeof(-10 + (int)15.1)");
     assert(4, sizeof(-10 + (int)3e+10), "sizeof(-10 + (int)3e+10)");
+
+    assert(1, 2e3==2e3, "2e3==2e3");
+    assert(0, 2e3==2e5, "2e3==2e5");
+    assert(1, 2.0==2, "2.0==2");
+    assert(0, 5.1<5, "5.1<5");
+    assert(0, 5.0<5, "5.0<5");
+    assert(1, 4.9<5, "4.9<5");
+    assert(0, 5.1<=5, "5.1<=5");
+    assert(1, 5.0<=5, "5.0<=5");
+    assert(1, 4.9<=5, "4.9<=5");
+
+    assert(1, 2e3f==2e3, "2e3f==2e3");
+    assert(0, 2e3f==2e5, "2e3f==2e5");
+    assert(1, 2.0f==2, "2.0f==2");
+    assert(0, 5.1f<5, "5.1f<5");
+    assert(0, 5.0f<5, "5.0f<5");
+    assert(1, 4.9f<5, "4.9f<5");
+    assert(0, 5.1f<=5, "5.1f<=5");
+    assert(1, 5.0f<=5, "5.0f<=5");
+    assert(1, 4.9f<=5, "4.9f<=5");
 
     printf("OK\n");
     return 0;

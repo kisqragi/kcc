@@ -368,6 +368,8 @@ static void gen_expr(Node *node) {
 
     char *rd = xreg(node->lhs->ty, top - 2);
     char *rs = xreg(node->lhs->ty, top - 1);
+    char *fd = freg(top - 2);
+    char *fs = freg(top - 1);
     top--;
 
     switch (node->kind) {
@@ -396,29 +398,57 @@ static void gen_expr(Node *node) {
             printf("    xor %s, %s\n", rd, rs);
             return;
         case ND_EQ:
-            printf("    cmp %s, %s\n", rd, rs);
+            if (node->lhs->ty->kind == TY_FLOAT)
+                printf("    ucomiss %s, %s\n", fd, fs);
+            else if (node->lhs->ty->kind == TY_DOUBLE)
+                printf("    ucomisd %s, %s\n", fd, fs);
+            else
+                printf("    cmp %s, %s\n", rd, rs);
             printf("    sete al\n");
             printf("    movzb %s, al\n", rd);
             return;
         case ND_NE:
-            printf("    cmp %s, %s\n", rd, rs);
+            if (node->lhs->ty->kind == TY_FLOAT)
+                printf("    ucomiss %s, %s\n", fd, fs);
+            else if (node->lhs->ty->kind == TY_DOUBLE)
+                printf("    ucomisd %s, %s\n", fd, fs);
+            else
+                printf("    cmp %s, %s\n", rd, rs);
             printf("    setne al\n");
             printf("    movzb %s, al\n", rd);
             return;
         case ND_LT:
-            printf("    cmp %s, %s\n", rd, rs);
-            if (node->lhs->ty->is_unsigned)
+            if (node->lhs->ty->kind == TY_FLOAT) {
+                printf("    ucomiss %s, %s\n", fd, fs);
                 printf("    setb al\n");
-            else
-                printf("    setl al\n");
+            }
+            else if (node->lhs->ty->kind == TY_DOUBLE) {
+                printf("    ucomisd %s, %s\n", fd, fs);
+                printf("    setb al\n");
+            } else {
+                printf("    cmp %s, %s\n", rd, rs);
+                if (node->lhs->ty->is_unsigned)
+                    printf("    setb al\n");
+                else
+                    printf("    setl al\n");
+            }
             printf("    movzx %s, al\n", rd);
             return;
         case ND_LE:
-            printf("    cmp %s, %s\n", rd, rs);
-            if (node->lhs->ty->is_unsigned)
+            if (node->lhs->ty->kind == TY_FLOAT) {
+                printf("    ucomiss %s, %s\n", fd, fs);
                 printf("    setbe al\n");
-            else
-                printf("    setle al\n");
+            }
+            else if (node->lhs->ty->kind == TY_DOUBLE) {
+                printf("    ucomisd %s, %s\n", fd, fs);
+                printf("    setbe al\n");
+            } else {
+                printf("    cmp %s, %s\n", rd, rs);
+                if (node->lhs->ty->is_unsigned)
+                    printf("    setbe al\n");
+                else
+                    printf("    setle al\n");
+            }
             printf("    movzx %s, al\n", rd);
             return;
         case ND_SHL:
