@@ -1142,15 +1142,10 @@ static Node *stmt(Token **rest, Token *tok) {
 
         enter_scope();
 
-        if (is_typename(tok)) {
+        if (is_typename(tok))
             node->init = declaration(&tok, tok);
-        } else {
-            if (equal(tok, ";")) 
-                node->init = NULL;
-            else
-                node->init = expr_stmt(&tok, tok);
-            tok = skip(tok, ";");
-        }
+        else
+            node->init = expr_stmt(&tok, tok);
 
         // condは比較結果の値を返す
         if (!equal(tok, ";"))
@@ -1158,7 +1153,7 @@ static Node *stmt(Token **rest, Token *tok) {
         tok = skip(tok, ";");
 
         if (!equal(tok, ")"))
-            node->inc = expr_stmt(&tok, tok);
+            node->inc = expr(&tok, tok);
 
         tok = skip(tok, ")");
 
@@ -1217,9 +1212,7 @@ static Node *stmt(Token **rest, Token *tok) {
         return compound_stmt(rest, tok->next);
     }
 
-    node = new_unary(ND_EXPR_STMT, expr(&tok, tok), tok);
-    *rest = skip(tok, ";");
-    return node;
+    return expr_stmt(rest, tok);
 }
 
 static bool is_typename(Token *tok) {
@@ -1262,8 +1255,15 @@ static Node *compound_stmt(Token **rest, Token *tok) {
 
 // expr-stmt = expr
 static Node *expr_stmt(Token **rest, Token *tok) {
+    if (equal(tok, ";")) {
+        Node *node = new_node(ND_BLOCK, tok);
+        *rest = tok->next;
+        return node;
+    }
+
     Node *node = new_node(ND_EXPR_STMT, tok);
-    node->lhs = expr(rest, tok);
+    node->lhs = expr(&tok, tok);
+    *rest = skip(tok, ";");
     return node;
 }
 
