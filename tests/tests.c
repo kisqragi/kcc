@@ -129,6 +129,10 @@ char *fmt(char *buf, char *fmt, ...) {
     vsprintf(buf, fmt, ap);
 }
 
+_Noreturn noreturn_fn(void) {
+    exit(0);
+}
+
 int assert(long expected, long actual, char *code) {
     if (expected == actual) {
         printf("%s => %ld\n", code, actual);
@@ -1037,6 +1041,12 @@ int main() {
     assert(8, ({ const x = 8; int *const y=&x; *y; }), "({ const x = 8; int *const y=&x; *y; })");
     assert(6, ({ const x = 6; *(const * const)&x; }), "({ const x = 6; *(const * const)&x; })");
 
+    { volatile x; }
+    { int volatile x; }
+    { volatile int x; }
+    { volatile int volatile volatile x; }
+    { int volatile * volatile volatile x; }
+    { int ** restrict const volatile *x; }
 
     printf("OK\n");
     return 0;
