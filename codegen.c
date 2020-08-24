@@ -655,7 +655,10 @@ static void gen_stmt(Node *node) {
         case ND_RETURN:
             if (node->lhs) {
                 gen_expr(node->lhs);
-                printf("    mov rax, %s\n", reg(--top));
+                if (is_flonum(node->lhs->ty))
+                    printf("    movsd xmm0, %s\n", freg(--top));
+                else
+                    printf("    mov rax, %s\n", reg(--top));
             }
             printf("    jmp .L.return.%s\n", current_fn->name);
             return;
@@ -738,18 +741,29 @@ static void emit_text(Program *prog) {
         }
 
         // スタックに引数を保存する
-        int i = 0;
-        for (Var *var = fn->params; var; var = var->next)
-            i++;
+        int gp = 0, fp = 0;
         for (Var *var = fn->params; var; var = var->next) {
-            if (var->ty->size == 1)
-                printf("    mov [rbp-%d], %s\n", var->offset, argreg8[--i]);
-            else if (var->ty->size == 2)
-                printf("    mov [rbp-%d], %s\n", var->offset, argreg16[--i]);
-            else if (var->ty->size == 4)
-                printf("    mov [rbp-%d], %s\n", var->offset, argreg32[--i]);
+            if (is_flonum(var->ty))
+                fp++;
             else
-                printf("    mov [rbp-%d], %s\n", var->offset, argreg64[--i]);
+                gp++;
+        }
+
+        for (Var *var = fn->params; var; var = var->next) {
+            if (var->ty->kind == TY_FLOAT)
+                printf("    movss [rbp-%d], xmm%d\n", var->offset, --fp);
+            else if (var->ty->kind == TY_DOUBLE)
+                printf("    movsd [rbp-%d], xmm%d\n", var->offset, --fp);
+            else {
+                if (var->ty->size == 1)
+                    printf("    mov [rbp-%d], %s\n", var->offset, argreg8[--gp]);
+                else if (var->ty->size == 2)
+                    printf("    mov [rbp-%d], %s\n", var->offset, argreg16[--gp]);
+                else if (var->ty->size == 4)
+                    printf("    mov [rbp-%d], %s\n", var->offset, argreg32[--gp]);
+                else
+                    printf("    mov [rbp-%d], %s\n", var->offset, argreg64[--gp]);
+            }
         }
 
         // アセンブリのコードを生成する

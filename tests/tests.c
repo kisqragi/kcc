@@ -64,8 +64,17 @@ int sub(int x, int y) { return x - y; }
 int add5(int a, int b, int c, int d, int e) {
     return a + b + c + d + e;
 }
+
 int add6(int a, int b, int c, int d, int e, int f) {
     return a + b + c + d + e + f;
+}
+
+double add_double3(double x, double y, double z) {
+    return x + y + z;
+}
+
+float add_float3(float x, float y, float z) {
+    return x + y + z;
 }
 
 int fib(int x) { 
@@ -1164,6 +1173,9 @@ int main() {
 
     assert(6, add_float(2.3, 3.8), "add_float(2.3, 3.8)");
     assert(6, add_double(2.3, 3.8), "add_double(2.3, 3.8)");
+
+    assert(7, add_float3(2.5, 2.5, 2.5), "add_float3(2.5, 2.5, 2.5)");
+    assert(7, add_double3(2.5, 2.5, 2.5), "add_double3(2.5, 2.5, 2.5)");
 
     printf("OK\n");
     return 0;
