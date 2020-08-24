@@ -82,5 +82,6 @@ kcc type.c
 kcc parse.c
 kcc codegen.c
 kcc tokenize.c
+kcc preprocess.c
 
 (cd $TMP; gcc -static -o ../$OUTPUT *.o)
