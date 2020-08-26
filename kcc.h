@@ -10,6 +10,7 @@
 #include <strings.h>
 
 typedef struct Type Type;
+typedef struct Hideset Hideset;
 typedef struct Member Member;
 typedef struct Relocation Relocation;
 
@@ -28,22 +29,23 @@ typedef enum {
 // Token
 typedef struct Token Token;
 struct Token {
-    TokenKind kind; // トークンの種類
-    Token *next;    // 次のトークン
-    long val;       // TK_NUMの場合に値を格納するのに使う
+    TokenKind kind;     // トークンの種類
+    Token *next;        // 次のトークン
+    long val;           // TK_NUMの場合に値を格納するのに使う
     double fval;
-    char *loc;      // トークンの位置
-    int len;        // トークンの長さ
+    char *loc;          // トークンの位置
+    int len;            // トークンの長さ
     Type *ty;
 
-    char *contents; // '\0'を含む文字列リテラル
-    char cont_len;  // 文字列リテラルの長さ
+    char *contents;     // '\0'を含む文字列リテラル
+    char cont_len;      // 文字列リテラルの長さ
 
     char *filename;
     char *input;
-    int line_no;    // 行番号
-    int file_no;    // .locディレクティブのファイル番号
-    bool at_bol;    // このトークンが行の先頭の場合true
+    int line_no;        // 行番号
+    int file_no;        // .locディレクティブのファイル番号
+    bool at_bol;        // このトークンが行の先頭の場合true
+    Hideset *hideset;   // macro展開で利用
 };
 
 
