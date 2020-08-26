@@ -1284,6 +1284,9 @@ int main() {
 #define M1 4
     assert(4, M1, "M1");
 
+#undef M1
+    assert(5, M1, "M1");
+
 #define M1 3+4+
     assert(12, M1 5, "M1 5");
 
@@ -1295,6 +1298,11 @@ int main() {
 #define five "5"
 #define END )
     ASSERT_ 5, if, five END;
+
+#undef ASSERT
+#undef if
+#undef five
+#undef END
 
     printf("OK\n");
     return 0;
