@@ -149,6 +149,8 @@ _Noreturn noreturn_fn(void) {
     exit(0);
 }
 
+int M9(int x) { return x*x; }
+
 int assert(long expected, long actual, char *code) {
     if (expected == actual) {
         printf("%s => %ld\n", code, actual);
@@ -1399,6 +1401,10 @@ int main() {
 
 #define M8(x,y) x*y
     assert(12, M8((2,3), 4), "M8((2,3), 4)");
+
+#define M9(x) M10(x) * x
+#define M10(x) M9(x) + 3
+    assert(10, M9(2), "M9(2)");
 
     printf("OK\n");
     return 0;

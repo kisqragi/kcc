@@ -98,6 +98,17 @@ static bool hideset_contains(Hideset *hs, char *s, int len) {
     return false;
 }
 
+static Hideset *hideset_intersection(Hideset *hs1, Hideset *hs2) {
+    Hideset head = {};
+    Hideset *cur = &head;
+
+    for (; hs1; hs1 = hs1->next) {
+        if (hideset_contains(hs2, hs1->name, strlen(hs1->name)))
+            cur = cur->next = new_hideset(hs1->name);
+    }
+    return head.next;
+}
+
 static Token *add_hideset(Token *tok, Hideset *hs) {
     Token head = {};
     Token *cur = &head;
@@ -228,7 +239,8 @@ static MacroArg *read_macro_args(Token **rest, Token *tok, MacroParam *params) {
 
     if (pp)
         error_tok(start, "too many argument");
-    *rest = skip(tok, ")");
+    skip(tok, ")");
+    *rest = tok;
     return head.next;
 }
 
@@ -284,8 +296,16 @@ static bool expand_macro(Token **rest, Token *tok) {
         return  false;
 
     // func-like macro (no argument)
+    Token *macro_token = tok;
     MacroArg *args = read_macro_args(&tok, tok, m->params);
-    *rest = append(subst(m->body, args), tok);
+    Token *rparen = tok;
+
+    Hideset *hs = hideset_intersection(macro_token->hideset, rparen->hideset);
+    hs = hideset_union(hs, new_hideset(m->name));
+
+    Token *body = subst(m->body, args);
+    body = add_hideset(body, hs);
+    *rest = append(body, tok->next);
     return true;
 }
 
