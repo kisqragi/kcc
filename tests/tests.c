@@ -1390,6 +1390,10 @@ int main() {
 #define M8(x,y,z) x+y+z
     assert(6, M8(1,2,3), "M8(1,2,3)");
 
+#define M8(x,y) x y
+    assert(9, M8(, 4+5), "M8(, 4+5)");
+    assert(9, M8(4+5, ), "M8(4+5, )");
+
     printf("OK\n");
     return 0;
 }
