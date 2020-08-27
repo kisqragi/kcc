@@ -1378,6 +1378,18 @@ int main() {
 #define M7 ()
     assert(3, ret3 M7, "ret3 M7");
 
+#define M8(x,y) x+y
+    assert(7, M8(3, 4), "M8(3, 4)");
+
+#define M8(x,y) x*y
+    assert(24, M8(3+4, 4+5), "M8(3+4, 4+5)");
+
+#define M8(x,y) (x)*(y)
+    assert(63, M8(3+4, 4+5), "M8(3+4, 4+5)");
+
+#define M8(x,y,z) x+y+z
+    assert(6, M8(1,2,3), "M8(1,2,3)");
+
     printf("OK\n");
     return 0;
 }
