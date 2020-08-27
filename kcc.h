@@ -45,6 +45,7 @@ struct Token {
     int line_no;        // 行番号
     int file_no;        // .locディレクティブのファイル番号
     bool at_bol;        // このトークンが行の先頭の場合true
+    bool has_space;     // このトークンがスペースの後にある場合true
     Hideset *hideset;   // macro展開で利用
 };
 

@@ -9,6 +9,8 @@ static char **input_files;
 // 入力ファイル名
 static char *current_filename;
 
+static bool has_space;
+
 // エラーを表示して終了する
 void error(char *fmt, ...) {
     va_list ap;
@@ -102,7 +104,10 @@ static Token *new_token(TokenKind kind, Token *cur, char *loc, int len) {
     tok->filename = current_filename;
     tok->input = current_input;
     tok->at_bol = false;
+    tok->has_space = has_space;
     cur->next = tok;
+
+    has_space = false;
 
     return tok;
 }
@@ -385,6 +390,8 @@ static Token *tokenize(char *filename, int file_no, char *p) {
     Token head = {};
     Token *cur = &head;
 
+    has_space = false;
+
     while (*p) {
 
         // 行コメントをスキップ
@@ -392,6 +399,7 @@ static Token *tokenize(char *filename, int file_no, char *p) {
             p += 2;
             while (*p != '\n')
                 p++;
+            has_space = true;
             continue;
         }
 
@@ -401,12 +409,14 @@ static Token *tokenize(char *filename, int file_no, char *p) {
             if (!q)
                 error_at(p, "unclosed block comment");
             p = q + 2;
+            has_space = true;
             continue;
         }
 
         // 空白文字をスキップ
         if (isspace(*p)) {
             p++;
+            has_space = true;
             continue;
         }
 
