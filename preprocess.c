@@ -149,6 +149,64 @@ static Macro *find_macro(Token *tok) {
     return NULL;
 }
 
+// tok内の全てのトークンをつなげて文字列にする
+static char *join_tokens(Token *tok) {
+    // 結果として得られるトークンの長さを計算する
+    int len = 1;
+    for (Token *t = tok; t && t->kind != TK_EOF; t = t->next) {
+        if (t != tok && t->has_space)
+            len++;
+        len += t->len;
+    }
+
+    char *buf = calloc(1, len);
+
+    // トークンをコピーする
+    int pos = 0;
+    for (Token *t = tok; t && t->kind != TK_EOF; t = t->next) {
+        if (t != tok && t->has_space)
+            buf[pos++] = ' ';
+        strncpy(buf+pos, t->loc, t->len);
+        pos += t->len;
+    }
+    buf[pos] = '\0';
+    return buf;
+}
+
+// 与えられた文字列をdouble-quoteを付加してreturnする
+static char *quote_string(char *str) {
+    int bufsize = 3;
+    for (int i = 0; str[i]; i++) {
+        if (str[i] == '\\' || str[i] == '"')
+            bufsize++;
+        bufsize++;
+    }
+
+    char *buf = calloc(1, bufsize);
+    char *p = buf;
+    *p++ = '"';
+
+    for (int i = 0; str[i]; i++) {
+        if (str[i] == '\\' || str[i] == '"')
+            *p++ = '\\';
+        *p++ = str[i];
+    }
+    *p++ = '"';
+    *p++ = '\0';
+    return buf;
+}
+
+
+static Token *new_str_token(char *str, Token *tmpl) {
+    char *buf = quote_string(str);
+    return tokenize(tmpl->filename, tmpl->file_no, buf);
+}
+
+static Token *stringize(Token *hash, Token *arg) {
+    char *s = join_tokens(arg);
+    return new_str_token(s, hash);
+}
+
 static Macro *add_macro(char *name, bool is_objlike, Token *body) {
     Macro *m = calloc(1, sizeof(Macro));
     m->next = macros;
@@ -257,8 +315,17 @@ static Token *subst(Token *tok, MacroArg *args) {
     Token *cur = &head;
 
     while (tok->kind != TK_EOF) {
-        Token *arg = find_arg(args, tok);
+        if (equal(tok, "#")) {
+            Token *arg = find_arg(args, tok->next);
+            if (!arg)
+                error_tok(tok->next, "'#' is not followed by a macro parameter");
+            cur = cur->next = stringize(tok, arg);
+            tok = tok->next->next;
+            continue;
+        }
 
+
+        Token *arg = find_arg(args, tok);
         if (arg) {
             arg = preprocess2(arg);
             for (Token *t = arg; t->kind != TK_EOF; t = t->next)

@@ -383,7 +383,7 @@ static Token *read_number(Token *cur, char *start) {
     return tok;
 }
 
-static Token *tokenize(char *filename, int file_no, char *p) {
+Token *tokenize(char *filename, int file_no, char *p) {
     current_filename = filename;
     current_input = p;
 

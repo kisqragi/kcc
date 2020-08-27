@@ -15,7 +15,7 @@ typedef struct Member Member;
 typedef struct Relocation Relocation;
 
 //
-// tokenizer.c
+// tokenize.c
 //
 
 typedef enum {
@@ -59,6 +59,7 @@ bool consume(Token **rest, Token *tok, char *str);
 void convert_keywords(Token *tok);
 char **get_input_files(void);
 Token *tokenize_file(char *filename);
+Token *tokenize(char *filename, int file_no, char *p);
 
 //
 // preprocess.c
