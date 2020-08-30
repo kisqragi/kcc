@@ -151,10 +151,10 @@ static Macro *find_macro(Token *tok) {
 }
 
 // tok内の全てのトークンをつなげて文字列にする
-static char *join_tokens(Token *tok) {
+static char *join_tokens(Token *tok, Token *end) {
     // 結果として得られるトークンの長さを計算する
     int len = 1;
-    for (Token *t = tok; t && t->kind != TK_EOF; t = t->next) {
+    for (Token *t = tok; t != end && t->kind != TK_EOF; t = t->next) {
         if (t != tok && t->has_space)
             len++;
         len += t->len;
@@ -164,7 +164,7 @@ static char *join_tokens(Token *tok) {
 
     // トークンをコピーする
     int pos = 0;
-    for (Token *t = tok; t && t->kind != TK_EOF; t = t->next) {
+    for (Token *t = tok; t != end && t->kind != TK_EOF; t = t->next) {
         if (t != tok && t->has_space)
             buf[pos++] = ' ';
         strncpy(buf+pos, t->loc, t->len);
@@ -204,7 +204,7 @@ static Token *new_str_token(char *str, Token *tmpl) {
 }
 
 static Token *stringize(Token *hash, Token *arg) {
-    char *s = join_tokens(arg);
+    char *s = join_tokens(arg, NULL);
     return new_str_token(s, hash);
 }
 
@@ -426,6 +426,55 @@ static bool expand_macro(Token **rest, Token *tok) {
     return true;
 }
 
+// "dif/file"の新しい文字列を返す 
+static char *join_paths(char *dir, char *file) {
+    char *buf = calloc(1, strlen(dir) + strlen(file) + 2);
+    sprintf(buf, "%s/%s", dir, file);
+    return buf;
+}
+
+static bool file_exists(char *path) {
+    struct stat st;
+    return !stat(path, &st);
+}
+
+static char *read_include_path(Token **rest, Token *tok) {
+    // Pattern 1: #include "foo.h"
+    if (tok->kind == TK_STR) {
+        char *filename = strndup(tok->loc+1, tok->len-2);
+        *rest = skip_line(tok->next);
+        return filename;
+    }
+
+    // Pattern 2: #include <foo.h>
+    if (equal(tok, "<")) {
+        Token *start = tok;
+
+        // Find closing ">"
+        for (; !equal(tok, ">"); tok = tok->next) {
+            if (tok->kind == TK_EOF)
+                error_tok(tok, "expected '>'");
+        }
+
+        char *filename = join_tokens(start->next, tok);
+        *rest = skip_line(tok->next);
+
+        char *path = join_paths(".", filename);
+        if (!file_exists(path))
+            error_tok(start, "'%s': file not found", filename); 
+        return path;
+    }
+
+    // Pattern 3: #include FOO
+    // この場合FOOはマクロ展開をする必要がある
+    if (tok->kind == TK_IDENT) {
+        Token *tok2 = preprocess2(copy_line(rest, tok));
+        return read_include_path(&tok2, tok2);
+    }
+
+    error_tok(tok, "expected a filename");
+}
+
 static Token *skip_cond_incl2(Token *tok) {
     while (tok->kind != TK_EOF) {
         if (is_hash(tok) && 
@@ -554,17 +603,11 @@ static Token *preprocess2(Token *tok) {
         tok = tok->next;
 
         if (equal(tok, "include")) {
-            tok = tok->next;
-
-            if (tok->kind != TK_STR)
-                error_tok(tok, "expected a filename");
-
-            char *path = tok->contents;
+            char *path = read_include_path(&tok, tok->next);
             Token *tok2 = tokenize_file(path);
             if (!tok2)
                 error_tok(tok, "%s", strerror(errno));
 
-            tok = skip_line(tok->next);
             tok = append(tok2, tok);
             continue;
         }
