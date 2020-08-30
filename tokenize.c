@@ -536,10 +536,33 @@ char **get_input_files(void) {
     return input_files;
 }
 
+static void remove_backslash_newline(char *p) {
+    char *q = p;
+
+    int n = 0;
+    
+    while (*p) {
+        if (startswith(p, "\\\n")) {
+            p += 2;
+            n++;
+        }
+        else if (*p == '\n') {
+            *q++ = *p++;
+            for (; n > 0; n--)
+                *q ++ = '\n';
+        } else {
+            *q++ = *p++;
+        }
+    }
+    *q = '\0';
+}
+
 Token *tokenize_file(char *path) {
     char *p = read_file(path);
     if (!p)
         return NULL;
+
+    remove_backslash_newline(p);
 
     static int file_no;
     input_files = realloc(input_files, sizeof(char *) * (file_no + 2));
