@@ -21,6 +21,7 @@ struct Macro {
     char *name;
     bool is_objlike; // obj-like or func-like
     MacroParam *params;
+    bool is_variadic;
     Token *body;
     bool deleted;
     macro_handler_fn *handler;
@@ -232,13 +233,20 @@ static Macro *add_macro(char *name, bool is_objlike, Token *body) {
     return m;
 }
 
-static MacroParam *read_macro_param(Token **rest, Token *tok) {
+static MacroParam *read_macro_param(Token **rest, Token *tok, bool *is_variadic) {
     MacroParam head = {};
     MacroParam *cur = &head;
 
     while (!equal(tok, ")")) {
         if (cur != &head)
             tok = skip(tok, ",");
+
+        if (equal(tok, "...")) {
+            *is_variadic = true;
+            tok = tok->next;
+            skip(tok, ")");
+            break;
+        }
 
         if (tok->kind != TK_IDENT)
             error_tok(tok, "expected an identifier");
@@ -260,21 +268,29 @@ static void read_macro_definition(Token **rest, Token *tok) {
 
     if (!tok->has_space && equal(tok, "(")) {
         // Function-like macro}
-        MacroParam *params = read_macro_param(&tok, tok->next);
+        bool is_variadic = false;
+        MacroParam *params = read_macro_param(&tok, tok->next, &is_variadic);
         Macro *m = add_macro(name, false, copy_line(rest, tok));
         m->params = params;
+        m->is_variadic = is_variadic;
     } else {
         // Object-like macro
         add_macro(name, true, copy_line(rest, tok));
     }
 }
 
-static MacroArg *read_macro_arg_one(Token **rest, Token *tok) {
+static MacroArg *read_macro_arg_one(Token **rest, Token *tok, bool read_rest) {
     Token head = {};
     Token *cur = &head;
     int level = 0;
 
-    while (level > 0 || (!equal(tok, ",") && !equal(tok, ")"))) {
+    for (;;) {
+        if (level == 0 && equal(tok, ")"))
+            break;
+
+        if (level == 0 && !read_rest && equal(tok, ","))
+            break;
+
         if (tok->kind == TK_EOF)
             error_tok(tok, "premature end of input");
         
@@ -295,7 +311,7 @@ static MacroArg *read_macro_arg_one(Token **rest, Token *tok) {
     return arg;
 }
 
-static MacroArg *read_macro_args(Token **rest, Token *tok, MacroParam *params) {
+static MacroArg *read_macro_args(Token **rest, Token *tok, MacroParam *params, bool is_variadic) {
     Token *start = tok;
     tok = tok->next->next;
 
@@ -306,12 +322,19 @@ static MacroArg *read_macro_args(Token **rest, Token *tok, MacroParam *params) {
     for (; pp; pp = pp->next) {
         if (cur != &head)
             tok = skip(tok, ",");
-        cur = cur->next = read_macro_arg_one(&tok, tok);
+        cur = cur->next = read_macro_arg_one(&tok, tok, false);
         cur->name = pp->name;
     }
 
-    if (pp)
+    if (is_variadic) {
+        if (pp != params)
+            tok = skip(tok, ",");
+        cur = cur->next = read_macro_arg_one(&tok, tok, true);
+        cur->name = "__VA_ARGS__";
+    } else if (pp) {
         error_tok(start, "too many argument");
+    }
+
     skip(tok, ")");
     *rest = tok;
     return head.next;
@@ -423,7 +446,7 @@ static bool expand_macro(Token **rest, Token *tok) {
 
     // func-like macro (no argument)
     Token *macro_token = tok;
-    MacroArg *args = read_macro_args(&tok, tok, m->params);
+    MacroArg *args = read_macro_args(&tok, tok, m->params, m->is_variadic);
     Token *rparen = tok;
 
     Hideset *hs = hideset_intersection(macro_token->hideset, rparen->hideset);
