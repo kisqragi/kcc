@@ -1,5 +1,8 @@
 #include "include1.h"
 
+char *main_filename = __FILE__;
+int main_line = __LINE__;
+
 int printf();
 int exit();
 int strcmp(char *p, char *q);
@@ -1506,6 +1509,11 @@ of(char), \
     assert(5, (&add)(2,3), "(&add)(2,3)");
     assert(7, ({ int (*fn)(int,int) = add; fn(2,5); }), "({ int (*fn)(int,int) = add; fn(2,5); })");
     assert(3, fnptr()(), "fnptr()()");
+
+    assert(0, strcmp(main_filename, "tests.c"), "strcmp(main_filename, \"tests.c\")");
+    assert(4, main_line, "main_line");
+    assert(0, strcmp(include1_filename, "include1.h"), "strcmp(include1_filename, \"include1.h\")");
+    assert(4, include1_line, "include1_line");
 
     printf("OK\n");
     return 0;
