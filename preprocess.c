@@ -597,6 +597,24 @@ static CondIncl *push_cond_incl(Token *tok, bool included) {
     return ci;
 }
 
+static void join_adjacent_string_leterals(Token *tok) {
+    while (tok->kind != TK_EOF) {
+        Token *tok2 = tok->next;
+
+        if (tok->kind == TK_STR && tok2->kind == TK_STR) {
+            char *buf = calloc(1, tok->len+tok2->len-1);
+            sprintf(buf, "\"%.*s%.*s\"",
+                    tok->len-2, tok->loc+1,
+                    tok2->len-2, tok2->loc+1);
+            *tok = *tokenize(tok->filename, tok->file_no, buf);
+            tok->next = tok2->next;
+            continue;
+        }
+
+        tok = tok->next;
+    }
+}
+
 static Token *preprocess2(Token *tok) {
     Token head = {};
     Token *cur = &head;
@@ -718,5 +736,6 @@ Token *preprocess(Token *tok) {
     if (cond_incl)
         error_tok(cond_incl->tok, "unterminated conditional directive");
     convert_keywords(tok);
+    join_adjacent_string_leterals(tok);
     return tok;
 }
