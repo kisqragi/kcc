@@ -2,11 +2,20 @@
 
 static char *input_path;
 
+char **include_paths;
 static bool opt_E;
 
 static void usage(int status) {
     fprintf(stderr, "kcc <file>\n");
     exit(status);
+}
+
+static void add_include_path(char *path) {
+    static int len = 2;
+    include_paths = realloc(include_paths, sizeof(char *) * len);
+    include_paths[len-2] = path;
+    include_paths[len-1] = NULL;
+    len++;
 }
 
 static void parse_args(int argc, char **argv) {
@@ -16,6 +25,11 @@ static void parse_args(int argc, char **argv) {
 
         if (!strcmp(argv[i], "-E")) {
             opt_E = true;
+            continue;
+        }
+
+        if (!strncmp(argv[i], "-I", 2)) {
+            add_include_path(argv[i]+2);
             continue;
         }
 

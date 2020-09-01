@@ -14,12 +14,12 @@ kcc-stage3: kcc-stage2
 	./self.sh tmp-stage3 ./kcc-stage2 kcc-stage3
 
 test: kcc tests/extern.o
-	(cd tests; ../kcc tests.c) > tmp.s
+	(cd tests; ../kcc -I. tests.c) > tmp.s
 	$(CC) -static -o tmp tmp.s tests/extern.c
 	./tmp
 
 test-stage2: kcc-stage2
-	(cd tests; ../kcc-stage2 tests.c) > tmp.s
+	(cd tests; ../kcc-stage2 -I. tests.c) > tmp.s
 	$(CC) -static -o tmp tmp.s tests/extern.c
 	./tmp
 
