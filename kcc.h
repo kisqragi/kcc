@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <libgen.h>
 
 typedef struct Type Type;
 typedef struct Hideset Hideset;

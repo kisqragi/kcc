@@ -18,6 +18,18 @@ static void add_include_path(char *path) {
     len++;
 }
 
+static void add_default_include_paths(char *argv0) {
+    // kcc固有のインクルードファイルはkccと同じ場所にある
+    // ./include にあると想定している。
+    char *buf = calloc(1, strlen(argv0) + 10);
+    sprintf(buf, "%s/include", dirname(strdup(argv0)));
+    add_include_path(buf);
+
+    add_include_path("/usr/local/include");
+    add_include_path("/usr/include/x86_64-linux-gnu");
+    add_include_path("/usr/include");
+}
+
 static void parse_args(int argc, char **argv) {
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--help"))
@@ -57,6 +69,7 @@ static void print_tokens(Token *tok) {
 }
 
 int main(int argc, char **argv) {
+    add_default_include_paths(argv[0]);
     parse_args(argc, argv);
 
     Token *tok = tokenize_file(input_path);
