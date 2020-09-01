@@ -151,6 +151,10 @@ _Noreturn noreturn_fn(void) {
 
 int M9(int x) { return x*x; }
 
+int (*fnptr(void))(int) {
+    return ret3;
+}
+
 int assert(long expected, long actual, char *code) {
     if (expected == actual) {
         printf("%s => %ld\n", code, actual);
@@ -1497,6 +1501,11 @@ of(char), \
     assert(0, !strcmp("abc" "d", "abcd\nefgh"), "!strcmp(\"abc\" \"d\", \"abcd\\nefgh\")");
 
     assert(1, __STDC__, "__STDC__");
+
+    assert(5, (add)(2,3), "(add)(2,3)");
+    assert(5, (&add)(2,3), "(&add)(2,3)");
+    assert(7, ({ int (*fn)(int,int) = add; fn(2,5); }), "({ int (*fn)(int,int) = add; fn(2,5); })");
+    assert(3, fnptr()(), "fnptr()()");
 
     printf("OK\n");
     return 0;

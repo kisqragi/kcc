@@ -173,7 +173,6 @@ struct Node {
     Member *member;
 
     // 関数呼び出し
-    char *funcname;
     Type *func_ty;
     Var **args;
     int nargs;

@@ -64,7 +64,7 @@ static void gen_addr(Node *node) {
 }
 
 static void load(Type *ty) {
-    if (ty->kind == TY_ARRAY || ty->kind == TY_STRUCT)
+    if (ty->kind == TY_ARRAY || ty->kind == TY_STRUCT || ty->kind == TY_FUNC)
         return;
 
     if (ty->kind == TY_FLOAT) {
@@ -348,7 +348,8 @@ static void gen_expr(Node *node) {
             return;
         }
         case ND_FUNCALL: {
-            if (!strcmp(node->funcname, "__builtin_va_start")) {
+            if (node->lhs->kind == ND_VAR && 
+                    !strcmp(node->lhs->var->name, "__builtin_va_start")) {
                 builtin_va_start(node);
                 return;
             }
@@ -362,6 +363,8 @@ static void gen_expr(Node *node) {
             printf("    movsd [rsp+40], xmm11\n");
             printf("    movsd [rsp+48], xmm12\n");
             printf("    movsd [rsp+56], xmm13\n");
+
+            gen_expr(node->lhs);
 
 
             // スタックから引数をロードする
@@ -389,7 +392,7 @@ static void gen_expr(Node *node) {
             }
 
             printf("    mov rax, %d\n", fp);
-            printf("    call %s\n", node->funcname);
+            printf("    call %s\n", reg(--top));
             
             if (node->ty->kind == TY_BOOL)
                 printf("    movzx rax, al\n");

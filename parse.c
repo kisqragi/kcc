@@ -105,6 +105,7 @@ static Type *union_decl(Token **rest, Token *tok);
 static Node *postfix(Token **rest, Token *tok);
 static Node *unary(Token **rest, Token *tok);
 static Node *primary(Token **rest, Token *tok);
+static Node *funcall(Token **rest, Token *tok, Node *fn);
 
 static void enter_scope(void) {
     scope_depth++;
@@ -1054,7 +1055,10 @@ static void gvar_initializer(Token **rest, Token *tok, Var *var) {
 // unary             = ("+" | "-" | "*" | "&" | "!" | "~")? cast
 //                   | ("++" | "--") unary
 //                   | postfix
-// postfix           = primary ("[" epxr "]" | "." ident | "->" ident | "++" | "--")*
+// postfix           = ident "(" func-args ")" postfix-tail*
+//                   | primary postfix-tail*
+// postfix-tail      = ("[" expr "]" | "(" func-args ")" 
+//                   | "." ident | "->" ident | "++" | "--")
 // primary           = "(" "{" stmt stmt* "}" ")"
 //                   | "(" expr ")"
 //                   | "sizeof" "(" type-name ")"
@@ -1977,11 +1981,19 @@ static Node *new_inc_dec(Node *node, Token *tok, int addend) {
 
 }
 
-// postfix = primary ("[" epxr "]" | "." ident | "->" ident | "++" | "--")*
+// postfix = ident "(" func-args ")" postfix-tail*
+//         | primary postfix-tail*
+// postfix-tail = ("[" expr "]" | "(" func-args ")" 
+//              | "." ident | "->" ident | "++" | "--")
 static Node *postfix(Token **rest, Token *tok) {
     Node *node = primary(&tok, tok);
 
     while (true) {
+        if (equal(tok, "(")) {
+            node = funcall(&tok, tok->next, node);
+            continue;
+        }
+
         if (equal(tok, "[")) {
             // x[y] == *(x+y)
             Token *start = tok;
@@ -2026,25 +2038,17 @@ static Node *postfix(Token **rest, Token *tok) {
 //
 // foo(a,b,c) は ({ t1=a; t2=b; t3=c; foo(t1,t2,t3); }) とコンパイルされます。
 // t1,t2,t3は新しいローカル変数です。
-static Node *funcall(Token **rest, Token *tok) {
+static Node *funcall(Token **rest, Token *tok, Node *fn) {
+    add_type(fn);
 
-    Token *start = tok;
-    tok = tok->next->next;
-
-    VarScope *sc = find_var(start);
-    Type *ty;
-    if (sc) {
-        if (!sc->var || sc->var->ty->kind != TY_FUNC)
-            error_tok(start, "not a function");
-        ty = sc->var->ty;
-    } else {
-        warn_tok(start, "implicit declaration of a function");
-        ty = func_type(ty_int);
-    }
+    if (fn->ty->kind != TY_FUNC &&
+            (fn->ty->kind != TY_PTR || fn->ty->base->kind != TY_FUNC))
+        error_tok(fn->tok, "not a function");
 
     Node *node = new_node(ND_NULL_EXPR, tok);
     Var **args = NULL;
     int nargs = 0;
+    Type *ty = (fn->ty->kind == TY_FUNC) ? fn->ty : fn->ty->base;
     Type *param_ty = ty->params;
 
     while (!equal(tok, ")")) {
@@ -2074,8 +2078,7 @@ static Node *funcall(Token **rest, Token *tok) {
 
     *rest = skip(tok, ")");
 
-    Node *funcall = new_node(ND_FUNCALL, start);
-    funcall->funcname = strndup(start->loc, start->len);
+    Node *funcall = new_unary(ND_FUNCALL, fn, tok);
     funcall->func_ty = ty;
     funcall->ty = ty->return_ty;
     funcall->args = args;
@@ -2132,21 +2135,23 @@ static Node *primary(Token **rest, Token *tok) {
     }
 
     if (tok->kind == TK_IDENT) {
-        // 関数呼び出し
-        if (equal(tok->next, "("))
-            return funcall(rest, tok);
-
         VarScope *sc = find_var(tok);
-        if (!sc || (!sc->var && !sc->enum_ty))
-            error_tok(tok, "undefined variable");
-
-        Node *node;
-        if (sc->var)
-            node = new_var_node(sc->var, tok);
-        else
-            node = new_num(sc->enum_val, tok);
         *rest = tok->next;
-        return node;
+        if (sc) {
+            if (sc->var)
+                return new_var_node(sc->var, tok);
+            if (sc->enum_ty)
+                return new_num(sc->enum_val, tok);
+        }
+
+        if (equal(tok->next, "(")) {
+            warn_tok(tok, "implicit declaration of a function");
+            char *name = strndup(tok->loc, tok->len);
+            Var *var = new_gvar(name, func_type(ty_int), true, false);
+            return new_var_node(var, tok);
+        }
+
+        error_tok(tok, "undefined variable");
     }
 
     if (tok->kind == TK_STR) {
