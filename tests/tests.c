@@ -1496,6 +1496,8 @@ of(char), \
     assert(0, strcmp("abc" "d" "\nefgh", "abcd\nefgh"), "strcmp(\"abc\" \"d\" \"\\nefgh\", \"abcd\\nefgh\")");
     assert(0, !strcmp("abc" "d", "abcd\nefgh"), "!strcmp(\"abc\" \"d\", \"abcd\\nefgh\")");
 
+    assert(1, __STDC__, "__STDC__");
+
     printf("OK\n");
     return 0;
 }
